@@ -8,7 +8,7 @@ function renderSidebarCourses() {
   const list = document.getElementById('sidebarCourseList');
 
   if (courses.length === 0) {
-    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--gray-400);font-size:12px;">暂无课程<br/>点击下方按钮创建</div>';
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--warm-400);font-size:12px;">暂无课程<br/>点击下方按钮创建</div>';
     return;
   }
 
@@ -59,7 +59,7 @@ function renderCourseView() {
 
   content.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <h2 style="font-size:18px;font-weight:700;color:var(--gray-800);">我的课程</h2>
+      <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);">我的课程</h2>
       <button class="btn btn-primary" id="btnNewCourseTop">+ 新建课程</button>
     </div>
     <div class="course-grid" id="courseGrid">
@@ -125,7 +125,7 @@ function renderCourseView() {
 
 // ===== 新建课程弹窗 =====
 function showNewCourseModal() {
-  const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#ef4444', '#6366f1'];
+  const colors = ['#8a9b9e', '#c4958b', '#9bae8c', '#c4b998', '#a0988e', '#b59a8c', '#8a9b8c', '#9b8a8e'];
   const bodyHtml = `
     <div class="form-group">
       <label>课程名称</label>

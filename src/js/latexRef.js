@@ -233,7 +233,7 @@ function renderLatexRefView() {
   const activeCategory = LATEX_CATEGORIES.find(c => c.id === latexRefActiveCategory) || LATEX_CATEGORIES[0];
 
   content.innerHTML = `
-    <h2 style="font-size:18px;font-weight:700;color:var(--gray-800);margin-bottom:16px;">📖 公式参考库</h2>
+    <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);margin-bottom:16px;">📖 公式参考库</h2>
     <div class="latex-ref-layout">
       <div class="latex-ref-sidebar" id="latexRefSidebar">
         ${LATEX_CATEGORIES.map(c => `
@@ -242,7 +242,7 @@ function renderLatexRefView() {
         `).join('')}
       </div>
       <div class="latex-ref-content" id="latexRefContent">
-        <h3 style="font-size:15px;font-weight:600;color:var(--gray-700);margin-bottom:12px;">
+        <h3 style="font-size:15px;font-weight:600;color:var(--warm-600);margin-bottom:12px;">
           ${activeCategory.name}
         </h3>
         <table class="latex-ref-table">

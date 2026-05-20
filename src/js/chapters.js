@@ -53,9 +53,9 @@ function renderChapterView(course) {
       <div class="card chapter-card" style="margin-bottom:8px;" data-chapter-id="${ch.id}">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:10px;">
-            <span style="color:var(--gray-400);font-size:14px;font-weight:600;">Ch ${i + 1}</span>
+            <span style="color:var(--warm-400);font-size:14px;font-weight:600;">Ch ${i + 1}</span>
             <span class="card-title">${escapeHtml(ch.title)}</span>
-            <span style="font-size:12px;color:var(--gray-400);">${(ch.concepts || []).length} 个概念</span>
+            <span style="font-size:12px;color:var(--warm-400);">${(ch.concepts || []).length} 个概念</span>
           </div>
           <div style="display:flex;gap:4px;">
             <button class="btn-icon btn-move-up" data-chapter-id="${ch.id}" title="上移" ${i === 0 ? 'disabled style="opacity:0.3"' : ''}>⬆️</button>
@@ -76,10 +76,10 @@ function renderChapterView(course) {
     <div class="breadcrumb">
       <span id="breadCourses">📚 课程列表</span>
       <span class="sep">›</span>
-      <span style="color:var(--gray-800);font-weight:500;">${escapeHtml(course.name)}</span>
+      <span style="color:var(--warm-700);font-weight:500;">${escapeHtml(course.name)}</span>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="font-size:18px;font-weight:700;color:var(--gray-800);">${escapeHtml(course.name)} — 章节</h2>
+      <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);">${escapeHtml(course.name)} — 章节</h2>
       <button class="btn btn-primary" id="btnNewChapterTop">+ 新建章节</button>
     </div>
     ${chaptersHtml}
