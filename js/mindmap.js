@@ -19,8 +19,8 @@ let mindmapState = {
 };
 
 const NODE_COLORS = [
-  '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
-  '#06b6d4', '#ef4444', '#6366f1', '#14b8a6', '#f97316',
+  '#8a9b9e', '#c4958b', '#9bae8c', '#c4b998', '#a0988e',
+  '#b59a8c', '#8a9b8c', '#9b8a8e', '#a09b8e', '#9b8e8a',
 ];
 
 // ===== 思维导图主视图 =====
@@ -81,18 +81,18 @@ function renderMindmapView() {
   content.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:12px;">
-        <h2 style="font-size:18px;font-weight:700;color:var(--gray-800);">🧠 思维导图</h2>
+        <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);">🧠 思维导图</h2>
         <select class="form-input" id="mindmapCourseSelect" style="width:200px;">
           ${courses.map(c => `<option value="${c.id}" ${c.id === courseId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:11px;color:var(--gray-400);margin-right:8px;">滚轮缩放 | 拖拽平移 | 拖拽节点 | 双击连线 | 右键菜单</span>
+        <span style="font-size:11px;color:var(--warm-400);margin-right:8px;">滚轮缩放 | 拖拽平移 | 拖拽节点 | 双击连线 | 右键菜单</span>
         <button class="btn btn-sm" id="btnExportPdf" style="background:#dc2626;color:#fff;border:none;">📄 导出 PDF</button>
         <button class="btn btn-secondary btn-sm" id="btnResetView">重置视图</button>
       </div>
     </div>
-    <div id="mindmap-canvas" style="width:100%;height:calc(100vh - 160px);position:relative;overflow:hidden;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200);">
+    <div id="mindmap-canvas" style="width:100%;height:calc(100vh - 160px);position:relative;overflow:hidden;background:var(--warm-bg);border-radius:8px;border:1px solid var(--warm-200);">
       <svg id="mindmapSvg"></svg>
     </div>`;
 
@@ -159,9 +159,9 @@ function exportMindmapPDF(course) {
           body { padding: 0; }
           svg { max-width: 100%; max-height: 100%; }
         }
-        .mm-name { font-weight: 700 !important; font-size: 13px !important; color: #1e293b !important; line-height: 1.3 !important; word-wrap: break-word !important; }
-        .mm-formula { font-size: 11px !important; color: #3b82f6 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-        .mm-desc { font-size: 10px !important; color: #94a3b8 !important; word-wrap: break-word !important; }
+        .mm-name { font-weight: 700 !important; font-size: 13px !important; color: #3d3835 !important; line-height: 1.3 !important; word-wrap: break-word !important; }
+        .mm-formula { font-size: 11px !important; color: #8a9b9e !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+        .mm-desc { font-size: 10px !important; color: #a0988e !important; word-wrap: break-word !important; }
       </style>
     </head>
     <body>${svgData}</body>
@@ -224,8 +224,8 @@ function renderMindmap() {
   arrowMarker.setAttribute('orient', 'auto');
   const arrowPoly = document.createElementNS(SVG, 'polygon');
   arrowPoly.setAttribute('points', '0 1, 12 5, 0 9');
-  arrowPoly.setAttribute('fill', '#3b82f6');
-  arrowPoly.setAttribute('stroke', '#2563eb');
+  arrowPoly.setAttribute('fill', '#8a9b9e');
+  arrowPoly.setAttribute('stroke', '#7a8b8e');
   arrowPoly.setAttribute('stroke-width', '0.5');
   arrowMarker.appendChild(arrowPoly);
   defs.appendChild(arrowMarker);
@@ -242,7 +242,7 @@ function renderMindmap() {
   dotCircle.setAttribute('cx', '4');
   dotCircle.setAttribute('cy', '4');
   dotCircle.setAttribute('r', '3.5');
-  dotCircle.setAttribute('fill', '#3b82f6');
+  dotCircle.setAttribute('fill', '#8a9b9e');
   dotMarker.appendChild(dotCircle);
   defs.appendChild(dotMarker);
 
@@ -298,7 +298,7 @@ function renderMindmap() {
     // 可见连线
     const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     pathEl.setAttribute('d', pathD);
-    pathEl.setAttribute('stroke', isSelected ? '#ef4444' : '#60a5fa');
+    pathEl.setAttribute('stroke', isSelected ? '#c97070' : '#8a9b9e');
     pathEl.setAttribute('stroke-width', isSelected ? '3.5' : '2');
     pathEl.setAttribute('fill', 'none');
     pathEl.setAttribute('marker-start', 'url(#startdot)');
@@ -319,7 +319,7 @@ function renderMindmap() {
       text.setAttribute('y', my - 10);
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('font-size', '11');
-      text.setAttribute('fill', isSelected ? '#ef4444' : '#2563eb');
+      text.setAttribute('fill', isSelected ? '#c97070' : '#7a8b8e');
       text.setAttribute('font-weight', isSelected ? '700' : '500');
       text.setAttribute('class', 'conn-label');
       text.dataset.from = conn.from;
@@ -334,7 +334,7 @@ function renderMindmap() {
   // --- 节点 ---
   const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   nodes.forEach(node => {
-    const color = nodeColors[node.id] || '#3b82f6';
+    const color = nodeColors[node.id] || '#8a9b9e';
     const isConnecting = mindmapState.connecting === node.id;
     const nodeW = node._nodeW || 210;
     const nodeH = node._nodeH || 52;
@@ -352,7 +352,7 @@ function renderMindmap() {
     rect.setAttribute('height', nodeH);
     rect.setAttribute('rx', '10');
     rect.setAttribute('fill', isConnecting ? '#eff6ff' : 'white');
-    rect.setAttribute('stroke', isConnecting ? '#3b82f6' : color);
+    rect.setAttribute('stroke', isConnecting ? '#8a9b9e' : color);
     rect.setAttribute('stroke-width', isConnecting ? '2.5' : '2');
     rect.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))');
     g.appendChild(rect);
@@ -379,17 +379,17 @@ function renderMindmap() {
     if (node.formula && typeof katex !== 'undefined') {
       try {
         const rendered = katex.renderToString(node.formula, { throwOnError: false, displayMode: false });
-        formulaHtml = `<div class="mm-formula" style="font-size:11px;color:#3b82f6;word-wrap:break-word;overflow-wrap:break-word;">${rendered}</div>`;
+        formulaHtml = `<div class="mm-formula" style="font-size:11px;color:#8a9b9e;word-wrap:break-word;overflow-wrap:break-word;">${rendered}</div>`;
       } catch (e) {
-        formulaHtml = `<div class="mm-formula" style="font-size:10px;color:#94a3b8;word-wrap:break-word;overflow-wrap:break-word;">${escapeHtml(node.formula)}</div>`;
+        formulaHtml = `<div class="mm-formula" style="font-size:10px;color:#a0988e;word-wrap:break-word;overflow-wrap:break-word;">${escapeHtml(node.formula)}</div>`;
       }
     }
 
     fo.innerHTML = `
       <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif;font-size:12px;padding:4px 6px 4px 0;word-wrap:break-word;overflow-wrap:break-word;display:flex;flex-direction:column;justify-content:center;">
-        <div class="mm-name" style="font-weight:700;font-size:13px;color:#1e293b;line-height:1.3;word-wrap:break-word;">${escapeHtml(node.name)}</div>
+        <div class="mm-name" style="font-weight:700;font-size:13px;color:#3d3835;line-height:1.3;word-wrap:break-word;">${escapeHtml(node.name)}</div>
         ${formulaHtml}
-        ${node.description ? `<div class="mm-desc" style="font-size:10px;color:#94a3b8;word-wrap:break-word;margin-top:1px;">${escapeHtml(node.description)}</div>` : ''}
+        ${node.description ? `<div class="mm-desc" style="font-size:10px;color:#a0988e;word-wrap:break-word;margin-top:1px;">${escapeHtml(node.description)}</div>` : ''}
       </div>`;
     g.appendChild(fo);
 
@@ -743,16 +743,16 @@ function bindMindmapEvents(container, svg, course) {
 // ===== 颜色选择弹窗 =====
 function showColorPicker(node, course) {
   const nodeId = node.id;
-  const currentColor = mindmapState.nodeColors[nodeId] || '#3b82f6';
+  const currentColor = mindmapState.nodeColors[nodeId] || '#8a9b9e';
 
   const bodyHtml = `
     <div style="text-align:center;">
-      <p style="margin-bottom:12px;font-size:13px;color:var(--gray-600);">为「${escapeHtml(node.name)}」选择颜色</p>
+      <p style="margin-bottom:12px;font-size:13px;color:var(--warm-600);">为「${escapeHtml(node.name)}」选择颜色</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
         ${NODE_COLORS.map(c => `
           <div class="mindmap-color-option" data-color="${c}"
                style="width:36px;height:36px;border-radius:50%;background:${c};cursor:pointer;
-                      border:3px solid ${c === currentColor ? 'var(--gray-800)' : 'transparent'};
+                      border:3px solid ${c === currentColor ? 'var(--warm-700)' : 'transparent'};
                       transition:all 0.15s ease;"
                onmouseover="this.style.transform='scale(1.2)'"
                onmouseout="this.style.transform='scale(1)'">
@@ -762,7 +762,7 @@ function showColorPicker(node, course) {
     </div>`;
 
   showModal('更改节点颜色', bodyHtml, (overlay) => {
-    const selected = overlay.querySelector('.mindmap-color-option[style*="var(--gray-800)"]');
+    const selected = overlay.querySelector('.mindmap-color-option[style*="var(--warm-700)"]');
     // 由于 inline style 不好检测，改用 data 属性查找
     const allOpts = overlay.querySelectorAll('.mindmap-color-option');
     let newColor = currentColor;

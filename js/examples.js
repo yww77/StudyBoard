@@ -31,7 +31,7 @@ function renderExampleView() {
 
   content.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="font-size:18px;font-weight:700;color:var(--gray-800);">📝 例题库</h2>
+      <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);">📝 例题库</h2>
       <button class="btn btn-primary" id="btnNewExample">+ 新建例题</button>
     </div>
 
@@ -83,7 +83,7 @@ function renderExampleView() {
 function renderExampleCard(example) {
   const course = getCourseById(example.courseId);
   const fileCount = (example.images || []).length + (example.pdfs || []).length;
-  const fileHint = fileCount > 0 ? `<span style="font-size:11px;color:var(--gray-400);">📎 ${fileCount} 个附件</span>` : '';
+  const fileHint = fileCount > 0 ? `<span style="font-size:11px;color:var(--warm-400);">📎 ${fileCount} 个附件</span>` : '';
 
   const imagesHtml = (example.images || []).slice(0, 3).map(img => `
     <img src="${img}" class="image-thumb" onclick="event.stopPropagation();window.open('${img}')" style="width:40px;height:40px;object-fit:cover;">
@@ -106,10 +106,10 @@ function renderExampleCard(example) {
           <button class="btn-icon btn-delete-example" data-example-id="${example.id}" title="删除">🗑️</button>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--gray-400);margin-bottom:6px;">
+      <div style="font-size:12px;color:var(--warm-400);margin-bottom:6px;">
         ${course ? `📚 ${escapeHtml(course.name)}` : '未分类'}
       </div>
-      <div style="font-size:13px;color:var(--gray-600);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+      <div style="font-size:13px;color:var(--warm-600);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
         ${escapeHtml(plainPreview)}${hasMore ? '...' : ''}
       </div>
       ${tagsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${tagsHtml}</div>` : ''}
@@ -211,10 +211,10 @@ function showExampleDetailModal(example) {
   `).join('');
 
   const pdfsHtml = (example.pdfs || []).map((pdf, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;margin-bottom:4px;cursor:pointer;"
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--warm-bg);border:1px solid var(--warm-200);border-radius:6px;margin-bottom:4px;cursor:pointer;"
          class="pdf-link" data-pdf-index="${i}">
       <span style="font-size:20px;">📄</span>
-      <span style="font-size:13px;color:var(--blue-600);">${escapeHtml(pdf.name)}</span>
+      <span style="font-size:13px;color:var(--dusty-blue);">${escapeHtml(pdf.name)}</span>
     </div>
   `).join('');
 
@@ -228,21 +228,21 @@ function showExampleDetailModal(example) {
       ${tagsHtml}
     </div>
     <div style="margin-bottom:12px;">
-      <label style="font-weight:600;font-size:12px;color:var(--gray-500);">题目</label>
-      <div style="padding:8px;background:var(--gray-50);border-radius:6px;margin-top:4px;" class="latex-content">
+      <label style="font-weight:600;font-size:12px;color:var(--warm-500);">题目</label>
+      <div style="padding:8px;background:var(--warm-bg);border-radius:6px;margin-top:4px;" class="latex-content">
         ${renderMixedLatex(example.content || '')}
       </div>
     </div>
     ${example.solution ? `
       <div style="margin-bottom:12px;">
-        <label style="font-weight:600;font-size:12px;color:var(--gray-500);">解题思路</label>
-        <div style="padding:8px;background:var(--gray-50);border-radius:6px;margin-top:4px;" class="latex-content">
+        <label style="font-weight:600;font-size:12px;color:var(--warm-500);">解题思路</label>
+        <div style="padding:8px;background:var(--warm-bg);border-radius:6px;margin-top:4px;" class="latex-content">
           ${renderMixedLatex(example.solution)}
         </div>
       </div>` : ''}
     ${(imagesHtml || pdfsHtml) ? `
       <div>
-        <label style="font-weight:600;font-size:12px;color:var(--gray-500);">附件</label>
+        <label style="font-weight:600;font-size:12px;color:var(--warm-500);">附件</label>
         <div style="margin-top:4px;">${imagesHtml}${pdfsHtml}</div>
       </div>` : ''}
     <div style="display:flex;justify-content:flex-end;margin-top:16px;">
@@ -283,16 +283,16 @@ function showExampleModal(existingExample = null) {
   (example.images || []).forEach((img, i) => {
     filePreviewHtml += `
       <div style="position:relative;display:inline-block;margin:4px;">
-        <img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200);">
+        <img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--warm-200);">
         <button class="btn-remove-file" data-type="image" data-index="${i}"
                 style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red-500);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;">✕</button>
       </div>`;
   });
   (example.pdfs || []).forEach((pdf, i) => {
     filePreviewHtml += `
-      <div style="position:relative;display:inline-block;margin:4px;padding:8px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;width:80px;text-align:center;">
+      <div style="position:relative;display:inline-block;margin:4px;padding:8px;background:var(--warm-bg);border:1px solid var(--warm-200);border-radius:6px;width:80px;text-align:center;">
         <span style="font-size:24px;">📄</span>
-        <div style="font-size:10px;color:var(--gray-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(pdf.name)}">${escapeHtml(pdf.name)}</div>
+        <div style="font-size:10px;color:var(--warm-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(pdf.name)}">${escapeHtml(pdf.name)}</div>
         <button class="btn-remove-file" data-type="pdf" data-index="${i}"
                 style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red-500);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;">✕</button>
       </div>`;
@@ -330,7 +330,7 @@ function showExampleModal(existingExample = null) {
     </div>
     <div class="form-group">
       <label>Tag 标签（与概念关联，回车添加）</label>
-      <div id="tagContainer" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;border:1px solid var(--gray-300);border-radius:6px;min-height:36px;">
+      <div id="tagContainer" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;border:1px solid var(--warm-300);border-radius:6px;min-height:36px;">
         ${tagsStr}
         <input id="tagInput" placeholder="输入 tag 后按回车..." style="border:none;outline:none;flex:1;min-width:100px;font-size:13px;">
       </div>
@@ -455,16 +455,16 @@ function refreshFilePreview(images, pdfs) {
   (images || []).forEach((img, i) => {
     html += `
       <div style="position:relative;display:inline-block;margin:4px;">
-        <img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200);">
+        <img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--warm-200);">
         <button data-remove-image="${i}"
                 style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red-500);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;">✕</button>
       </div>`;
   });
   (pdfs || []).forEach((pdf, i) => {
     html += `
-      <div style="position:relative;display:inline-block;margin:4px;padding:8px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:6px;width:80px;text-align:center;">
+      <div style="position:relative;display:inline-block;margin:4px;padding:8px;background:var(--warm-bg);border:1px solid var(--warm-200);border-radius:6px;width:80px;text-align:center;">
         <span style="font-size:24px;">📄</span>
-        <div style="font-size:10px;color:var(--gray-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(pdf.name)}">${escapeHtml(pdf.name)}</div>
+        <div style="font-size:10px;color:var(--warm-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(pdf.name)}">${escapeHtml(pdf.name)}</div>
         <button data-remove-pdf="${i}"
                 style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red-500);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;">✕</button>
       </div>`;
@@ -514,8 +514,8 @@ function openPdf(dataUrl, filename) {
       body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; }
       .toolbar { padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
                  display: flex; align-items: center; gap: 12px; font-family: sans-serif; }
-      .toolbar span { font-size: 14px; font-weight: 600; color: #1e293b; }
-      .toolbar a { font-size: 12px; color: #3b82f6; text-decoration: none; }
+      .toolbar span { font-size: 14px; font-weight: 600; color: #3d3835; }
+      .toolbar a { font-size: 12px; color: #8a9b9e; text-decoration: none; }
       iframe { flex: 1; border: none; }
     </style></head><body>
     <div class="toolbar">

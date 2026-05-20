@@ -43,7 +43,7 @@ function showConceptModal(chapterId, existingConcept = null) {
         <div style="flex:1;">
           <textarea class="form-input form-textarea" id="conceptFormula"
                     placeholder="例如：\\lim_{x \\to a} f(x) = L" style="font-family:Consolas,monospace;min-height:50px;">${escapeHtml(concept.formula || '')}</textarea>
-          <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">
+          <div style="font-size:11px;color:var(--warm-400);margin-top:4px;">
             使用 LaTeX 语法，参考「公式参考」标签页
           </div>
         </div>
@@ -177,7 +177,7 @@ function showConceptModal(chapterId, existingConcept = null) {
 function renderConceptsInChapter(chapter) {
   const concepts = chapter.concepts || [];
   if (concepts.length === 0) {
-    return `<div style="padding:8px 0;color:var(--gray-400);font-size:12px;">
+    return `<div style="padding:8px 0;color:var(--warm-400);font-size:12px;">
       <button class="btn btn-secondary btn-sm" data-chapter-id="${chapter.id}"
               onclick="event.stopPropagation();showConceptModal('${chapter.id}')">+ 添加概念</button>
     </div>`;
@@ -189,8 +189,8 @@ function renderConceptsInChapter(chapter) {
         <div class="concept-card" data-concept-id="${c.id}">
           <div class="concept-card-header">
             <div style="display:flex;align-items:center;gap:8px;flex:1;">
-              <span style="font-size:14px;font-weight:600;color:var(--gray-700);">${escapeHtml(c.name)}</span>
-              ${c.formula ? `<span style="font-size:12px;color:var(--blue-400);">📐 含公式</span>` : ''}
+              <span style="font-size:14px;font-weight:600;color:var(--warm-500);">${escapeHtml(c.name)}</span>
+              ${c.formula ? `<span style="font-size:12px;color:var(--dusty-blue);">📐 含公式</span>` : ''}
             </div>
             <div style="display:flex;gap:4px;" onclick="event.stopPropagation();">
               <button class="btn-icon btn-edit-concept" data-chapter-id="${chapter.id}" data-concept-id="${c.id}" title="编辑">✏️</button>
@@ -198,19 +198,19 @@ function renderConceptsInChapter(chapter) {
             </div>
           </div>
           <div class="concept-card-body">
-            ${c.description ? `<p style="margin-bottom:8px;color:var(--gray-600);">${escapeHtml(c.description)}</p>` : ''}
+            ${c.description ? `<p style="margin-bottom:8px;color:var(--warm-600);">${escapeHtml(c.description)}</p>` : ''}
             ${c.formula ? `
               <div style="margin-bottom:10px;padding:8px 0;">
-                <span style="font-size:11px;color:var(--gray-400);">公式：</span>
+                <span style="font-size:11px;color:var(--warm-400);">公式：</span>
                 <div class="concept-formula-render" data-formula="${escapeHtml(c.formula)}"></div>
               </div>` : ''}
             ${(c.derivationBlocks || []).length > 0 ? `
-              <div style="border-top:1px solid var(--gray-200);padding-top:10px;">
-                <span style="font-size:11px;color:var(--gray-400);">推导过程：</span>
+              <div style="border-top:1px solid var(--warm-200);padding-top:10px;">
+                <span style="font-size:11px;color:var(--warm-400);">推导过程：</span>
                 ${c.derivationBlocks.map(b => `
-                  <div style="margin:6px 0;padding:8px;background:var(--blue-50);border-radius:4px;border-left:3px solid var(--blue-300);">
-                    <strong style="font-size:12px;color:var(--blue-700);">${escapeHtml(b.title)}</strong>
-                    <div class="block-formula-render" data-content="${escapeHtml(b.content || '')}" style="margin-top:4px;font-size:13px;color:var(--gray-700);"></div>
+                  <div style="margin:6px 0;padding:8px;background:var(--dusty-blue-bg);border-radius:4px;border-left:3px solid var(--warm-300);">
+                    <strong style="font-size:12px;color:var(--warm-700);">${escapeHtml(b.title)}</strong>
+                    <div class="block-formula-render" data-content="${escapeHtml(b.content || '')}" style="margin-top:4px;font-size:13px;color:var(--warm-500);"></div>
                   </div>
                 `).join('')}
               </div>` : ''}
