@@ -2,21 +2,20 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+
+# 确保 Actions 有写入权限
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
+
+      - name: Deploy src/ to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: src
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./src
+          publish_branch: gh-pages
