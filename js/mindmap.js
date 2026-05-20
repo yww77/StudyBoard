@@ -16,6 +16,9 @@ let mindmapState = {
   zoom: 1,
   undoStack: [],
   selectedConnection: null,
+  tempWaypoints: [],        // 连线创建中的临时拐点
+  previewPath: null,        // 预览路径元素
+  draggingWaypoint: null,   // { connIdx, wpIdx, startX, startY }
 };
 
 const NODE_COLORS = [
@@ -268,13 +271,15 @@ function renderMindmap() {
     const toNode = nodes.find(n => n.id === conn.to);
     if (!fromNode || !toNode) return;
 
-    const pathD = calcCurvePath(fromNode, toNode);
-    const mx = (fromNode.x + toNode.x) / 2;
-    const my = (fromNode.y + toNode.y) / 2;
+    const waypoints = conn.waypoints || [];
+    const pathD = calcConnectionPath(fromNode, toNode, waypoints);
+    const labelWp = waypoints.length > 0 ? waypoints[Math.floor(waypoints.length / 2)] : null;
+    const mx = labelWp ? labelWp.x : (fromNode.x + toNode.x) / 2;
+    const my = labelWp ? labelWp.y : (fromNode.y + toNode.y) / 2;
 
     const isSelected = mindmapState.selectedConnection === idx;
 
-    // 隐形宽点击区域（更容易点中）
+    // 隐形宽点击区域
     const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     hitPath.setAttribute('d', pathD);
     hitPath.setAttribute('stroke', 'transparent');
@@ -309,14 +314,31 @@ function renderMindmap() {
     pathEl.style.cursor = 'pointer';
     pathEl.style.pointerEvents = 'none';
     if (isSelected) {
-      pathEl.setAttribute('filter', 'drop-shadow(0 0 3px rgba(239,68,68,0.5))');
+      pathEl.setAttribute('filter', 'drop-shadow(0 0 3px rgba(199,112,112,0.5))');
     }
     connGroup.appendChild(pathEl);
 
+    // 拐点圆点（可拖拽）
+    waypoints.forEach((wp, wpi) => {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', wp.x);
+      circle.setAttribute('cy', wp.y);
+      circle.setAttribute('r', '5');
+      circle.setAttribute('fill', isSelected ? '#c97070' : '#c4958b');
+      circle.setAttribute('stroke', '#fdfcfa');
+      circle.setAttribute('stroke-width', '2');
+      circle.style.cursor = 'grab';
+      circle.dataset.connIdx = idx;
+      circle.dataset.wpIdx = wpi;
+      circle.classList.add('waypoint-circle');
+      connGroup.appendChild(circle);
+    });
+
+    // 标签
     if (conn.label) {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', mx);
-      text.setAttribute('y', my - 10);
+      text.setAttribute('y', my - 12);
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('font-size', '11');
       text.setAttribute('fill', isSelected ? '#c97070' : '#7a8b8e');
@@ -396,7 +418,29 @@ function renderMindmap() {
     nodeGroup.appendChild(g);
   });
   svg.appendChild(nodeGroup);
+
+  // 连线创建中：渲染临时拐点圆点
+  if (mindmapState.connecting && mindmapState.tempWaypoints.length > 0) {
+    const tempGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    mindmapState.tempWaypoints.forEach(wp => {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', wp.x);
+      circle.setAttribute('cy', wp.y);
+      circle.setAttribute('r', '5');
+      circle.setAttribute('fill', '#c4958b');
+      circle.setAttribute('stroke', '#fdfcfa');
+      circle.setAttribute('stroke-width', '2');
+      circle.style.pointerEvents = 'none';
+      tempGroup.appendChild(circle);
+    });
+    svg.appendChild(tempGroup);
+  }
+
+  // 清除预览路径引用（已被清空）
+  mindmapState.previewPath = null;
 }
+
+// ===== 计算贝塞尔曲线路径 =====
 
 // ===== 计算贝塞尔曲线路径 =====
 // 将线段 (x1,y1)->(x2,y2) 裁剪到以 (rx,ry) 为中心的矩形边缘
@@ -463,6 +507,32 @@ function calcCurvePath(fromNode, toNode) {
   return `M ${startPt.x} ${startPt.y} Q ${cx} ${cy} ${endPt.x} ${endPt.y}`;
 }
 
+// 计算带拐点的连线路径
+function calcConnectionPath(fromNode, toNode, waypoints) {
+  if (!waypoints || waypoints.length === 0) {
+    return calcCurvePath(fromNode, toNode);
+  }
+
+  const fw = fromNode._nodeW || 210;
+  const fh = fromNode._nodeH || 52;
+  const tw = toNode._nodeW || 210;
+  const th = toNode._nodeH || 52;
+
+  // 起点裁剪：fromNode 中心 → 第一个拐点
+  const firstWp = waypoints[0];
+  const startPt = clipToRectEdge(firstWp.x, firstWp.y, fromNode.x, fromNode.y, fromNode.x, fromNode.y, fw, fh);
+
+  // 终点裁剪：最后一个拐点 → toNode 中心
+  const lastWp = waypoints[waypoints.length - 1];
+  const endPt = clipToRectEdge(lastWp.x, lastWp.y, toNode.x, toNode.y, toNode.x, toNode.y, tw, th);
+
+  // 构建路径：直线段连接各拐点
+  let d = `M ${startPt.x} ${startPt.y}`;
+  waypoints.forEach(wp => { d += ` L ${wp.x} ${wp.y}`; });
+  d += ` L ${endPt.x} ${endPt.y}`;
+  return d;
+}
+
 // ===== 保存思维导图数据 =====
 function saveMindmapData(course) {
   updateCourse(course.id, {
@@ -523,28 +593,60 @@ function bindMindmapEvents(container, svg, course) {
   }
 
   // 更新连线（拖拽时）
-  function updateConnectionLines(nodeId) {
-    svg.querySelectorAll('path[data-from], path[data-to]').forEach(path => {
+  function updateConnectionLines(nodeId, connIdxOverride) {
+    // 更新指定连线（拐点拖拽时）或所有与某节点相关的连线
+    const conns = mindmapState.connections;
+    svg.querySelectorAll('path[data-from][data-to]').forEach(path => {
       const fromId = path.dataset.from;
       const toId = path.dataset.to;
+      const idx = parseInt(path.dataset.connIdx);
+      if (isNaN(idx)) return;
+      // 如果指定了 connIdx，只更新该连线；否则更新与 nodeId 相关的
+      if (connIdxOverride !== undefined && idx !== connIdxOverride) return;
+      if (connIdxOverride === undefined && nodeId && fromId !== nodeId && toId !== nodeId) return;
       const fromNode = mindmapState.nodes.find(n => n.id === fromId);
       const toNode = mindmapState.nodes.find(n => n.id === toId);
-      if (fromNode && toNode) {
-        path.setAttribute('d', calcCurvePath(fromNode, toNode));
+      if (fromNode && toNode && conns[idx]) {
+        const waypoints = conns[idx].waypoints || [];
+        path.setAttribute('d', calcConnectionPath(fromNode, toNode, waypoints));
       }
     });
     svg.querySelectorAll('text.conn-label').forEach(text => {
-      const fromNode = mindmapState.nodes.find(n => n.id === text.dataset.from);
-      const toNode = mindmapState.nodes.find(n => n.id === text.dataset.to);
+      const fromId = text.dataset.from;
+      const toId = text.dataset.to;
+      if (nodeId && fromId !== nodeId && toId !== nodeId) return;
+      const fromNode = mindmapState.nodes.find(n => n.id === fromId);
+      const toNode = mindmapState.nodes.find(n => n.id === toId);
       if (fromNode && toNode) {
-        text.setAttribute('x', (fromNode.x + toNode.x) / 2);
-        text.setAttribute('y', (fromNode.y + toNode.y) / 2 - 10);
+        const idx = parseInt(text.parentElement?.querySelector('path')?.dataset?.connIdx);
+        const waypoints = (idx !== undefined && conns[idx]) ? (conns[idx].waypoints || []) : [];
+        const labelWp = waypoints.length > 0 ? waypoints[Math.floor(waypoints.length / 2)] : null;
+        text.setAttribute('x', labelWp ? labelWp.x : (fromNode.x + toNode.x) / 2);
+        text.setAttribute('y', (labelWp ? labelWp.y : (fromNode.y + toNode.y) / 2) - 12);
       }
     });
   }
 
   // --- mousedown ---
   svg.addEventListener('mousedown', (e) => {
+    // 拐点拖拽
+    if (e.target.classList.contains('waypoint-circle') && e.button === 0) {
+      e.stopPropagation();
+      e.preventDefault();
+      const connIdx = parseInt(e.target.dataset.connIdx);
+      const wpIdx = parseInt(e.target.dataset.wpIdx);
+      const pt = getSvgPoint(e);
+      mindmapState.draggingWaypoint = {
+        connIdx, wpIdx,
+        startX: pt.x,
+        startY: pt.y,
+        origX: mindmapState.connections[connIdx].waypoints[wpIdx].x,
+        origY: mindmapState.connections[connIdx].waypoints[wpIdx].y,
+      };
+      svg.style.cursor = 'grabbing';
+      return;
+    }
+
     const nodeGroup = findNodeGroup(e.target);
     if (nodeGroup && e.button === 0) {
       if (mindmapState.connecting) {
@@ -556,10 +658,12 @@ function bindMindmapEvents(container, svg, course) {
             from: mindmapState.connecting,
             to: targetId,
             label: label,
+            waypoints: mindmapState.tempWaypoints.length > 0 ? [...mindmapState.tempWaypoints] : [],
           });
           saveMindmapData(course);
         }
         mindmapState.connecting = null;
+        mindmapState.tempWaypoints = [];
         svg.style.cursor = 'grab';
         renderMindmap();
         return;
@@ -575,6 +679,14 @@ function bindMindmapEvents(container, svg, course) {
       svg.style.cursor = 'grabbing';
       e.preventDefault();
     } else if (e.button === 0) {
+      // 连线模式下点击空白 → 添加拐点
+      if (mindmapState.connecting) {
+        const pt = getSvgPoint(e);
+        mindmapState.tempWaypoints.push({ x: Math.round(pt.x), y: Math.round(pt.y) });
+        renderMindmap();
+        showToast(`拐点 ${mindmapState.tempWaypoints.length} 已添加，继续点击空白添加更多拐点，或点击目标节点完成`, 'info');
+        return;
+      }
       isPanning = true;
       lastMouseX = e.clientX;
       lastMouseY = e.clientY;
@@ -584,6 +696,25 @@ function bindMindmapEvents(container, svg, course) {
 
   // --- mousemove ---
   svg.addEventListener('mousemove', (e) => {
+    // 拖拽拐点
+    if (mindmapState.draggingWaypoint) {
+      const dw = mindmapState.draggingWaypoint;
+      const pt = getSvgPoint(e);
+      const dx = pt.x - dw.startX;
+      const dy = pt.y - dw.startY;
+      const wp = mindmapState.connections[dw.connIdx].waypoints[dw.wpIdx];
+      wp.x = dw.origX + dx;
+      wp.y = dw.origY + dy;
+      // 更新拐点圆点位置
+      const circle = svg.querySelector(`circle[data-conn-idx="${dw.connIdx}"][data-wp-idx="${dw.wpIdx}"]`);
+      if (circle) {
+        circle.setAttribute('cx', wp.x);
+        circle.setAttribute('cy', wp.y);
+      }
+      // 更新路径
+      updateConnectionLines(null, dw.connIdx);
+      return;
+    }
     if (isDraggingNode && draggedNode) {
       const pt = getSvgPoint(e);
       draggedNode.x = pt.x - mindmapState.dragOffset.x;
@@ -601,11 +732,43 @@ function bindMindmapEvents(container, svg, course) {
       lastMouseX = e.clientX;
       lastMouseY = e.clientY;
       svg.setAttribute('viewBox', `${mindmapState.viewBox.x} ${mindmapState.viewBox.y} ${mindmapState.viewBox.w} ${mindmapState.viewBox.h}`);
+    } else if (mindmapState.connecting) {
+      // 连线创建中：显示预览路径
+      const pt = getSvgPoint(e);
+      const fromNode = mindmapState.nodes.find(n => n.id === mindmapState.connecting);
+      if (fromNode) {
+        let previewD;
+        if (mindmapState.tempWaypoints.length > 0) {
+          const allPts = [...mindmapState.tempWaypoints, { x: pt.x, y: pt.y }];
+          let d = `M ${fromNode.x} ${fromNode.y}`;
+          allPts.forEach(p => { d += ` L ${p.x} ${p.y}`; });
+          previewD = d;
+        } else {
+          previewD = `M ${fromNode.x} ${fromNode.y} L ${pt.x} ${pt.y}`;
+        }
+        if (!mindmapState.previewPath) {
+          mindmapState.previewPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          mindmapState.previewPath.setAttribute('stroke', '#c4958b');
+          mindmapState.previewPath.setAttribute('stroke-dasharray', '6 3');
+          mindmapState.previewPath.setAttribute('stroke-width', '1.5');
+          mindmapState.previewPath.setAttribute('fill', 'none');
+          mindmapState.previewPath.style.pointerEvents = 'none';
+          svg.appendChild(mindmapState.previewPath);
+        }
+        mindmapState.previewPath.setAttribute('d', previewD);
+      }
     }
   });
 
   // --- mouseup ---
   window.addEventListener('mouseup', () => {
+    if (mindmapState.draggingWaypoint) {
+      saveMindmapData(course);
+      mindmapState.draggingWaypoint = null;
+      svg.style.cursor = 'grab';
+      renderMindmap();
+      return;
+    }
     if (isDraggingNode && draggedNode) {
       course.mindmapNodePositions[draggedNode.id] = { x: draggedNode.x, y: draggedNode.y };
       saveMindmapData(course);
@@ -623,20 +786,41 @@ function bindMindmapEvents(container, svg, course) {
     const nodeId = nodeGroup.dataset.nodeId;
     if (mindmapState.connecting) {
       mindmapState.connecting = null;
+      mindmapState.tempWaypoints = [];
       svg.style.cursor = 'grab';
       renderMindmap();
       showToast('已取消连线模式', 'info');
     } else if (mindmapState.nodes.length > 1) {
       mindmapState.connecting = nodeId;
+      mindmapState.tempWaypoints = [];
       svg.style.cursor = 'crosshair';
       renderMindmap();
-      showToast('请点击目标节点完成连线（先点=起点 → 后点=终点）', 'info');
+      showToast('点击空白添加拐点，点击目标节点完成连线', 'info');
     }
   });
 
   // --- 右键菜单：删除节点 / 更改颜色 ---
   svg.addEventListener('contextmenu', (e) => {
     e.preventDefault();
+
+    // 右键拐点 → 删除拐点
+    if (e.target.classList.contains('waypoint-circle')) {
+      const connIdx = parseInt(e.target.dataset.connIdx);
+      const wpIdx = parseInt(e.target.dataset.wpIdx);
+      if (!isNaN(connIdx) && !isNaN(wpIdx) && mindmapState.connections[connIdx]) {
+        if (confirm('删除此拐点？')) {
+          pushUndoState(course);
+          mindmapState.connections[connIdx].waypoints.splice(wpIdx, 1);
+          if (mindmapState.connections[connIdx].waypoints.length === 0) {
+            delete mindmapState.connections[connIdx].waypoints;
+          }
+          saveMindmapData(course);
+          renderMindmap();
+        }
+      }
+      return;
+    }
+
     const nodeGroup = findNodeGroup(e.target);
 
     if (nodeGroup) {
@@ -730,8 +914,14 @@ function bindMindmapEvents(container, svg, course) {
     if (e.key === 'Escape') {
       if (mindmapState.connecting) {
         mindmapState.connecting = null;
+        mindmapState.tempWaypoints = [];
+        if (mindmapState.previewPath) {
+          mindmapState.previewPath.remove();
+          mindmapState.previewPath = null;
+        }
         svg.style.cursor = 'grab';
         renderMindmap();
+        showToast('已取消连线模式', 'info');
       } else if (mindmapState.selectedConnection !== null) {
         mindmapState.selectedConnection = null;
         renderMindmap();
