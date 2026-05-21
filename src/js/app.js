@@ -33,25 +33,25 @@ function switchTab(tabName) {
   switch (tabName) {
     case 'courses':
       if (typeof renderCourseView === 'function') renderCourseView();
-      else DOM.content.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div><p>课程模块加载中...</p></div>';
+      else DOM.content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="book-marked"></i></div><p>课程模块加载中...</p></div>';
       break;
     case 'examples':
       if (typeof renderExampleView === 'function') renderExampleView();
-      else DOM.content.innerHTML = '<div class="empty-state"><div class="empty-icon">📝</div><p>例题模块加载中...</p></div>';
+      else DOM.content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="file-text"></i></div><p>例题模块加载中...</p></div>';
       break;
     case 'mindmap':
       if (typeof renderMindmapView === 'function') renderMindmapView();
-      else DOM.content.innerHTML = '<div class="empty-state"><div class="empty-icon">🧠</div><p>思维导图模块加载中...</p></div>';
+      else DOM.content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="git-graph"></i></div><p>思维导图模块加载中...</p></div>';
       break;
     case 'latexRef':
       if (typeof renderLatexRefView === 'function') renderLatexRefView();
-      else DOM.content.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div><p>公式参考模块加载中...</p></div>';
+      else DOM.content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="library"></i></div><p>公式参考模块加载中...</p></div>';
       break;
   }
 }
 
 // ===== 弹窗管理 =====
-function showModal(title, bodyHtml, onSave) {
+function showModal(title, bodyHtml, onSave, onReady) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
@@ -65,6 +65,11 @@ function showModal(title, bodyHtml, onSave) {
     </div>
   `;
   DOM.modalContainer.appendChild(overlay);
+
+  // DOM 插入后立即通知调用方（替代 setTimeout 硬编码延迟）
+  if (onReady) onReady(overlay);
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 
   overlay.querySelector('#modalCancel').addEventListener('click', closeModal);
   overlay.querySelector('#modalSave').addEventListener('click', () => {
@@ -123,7 +128,7 @@ function bindEvents() {
 
   // 清空数据按钮
   $('#btnClearData').addEventListener('click', () => {
-    if (confirm('⚠️ 确定清空所有数据吗？\n\n这将删除所有课程、章节、概念、例题和思维导图。\n此操作不可撤销！\n\n建议先导出备份。')) {
+    if (confirm('确定清空所有数据吗？\n\n这将删除所有课程、章节、概念、例题和思维导图。\n此操作不可撤销！\n\n建议先导出备份。')) {
       if (confirm('再次确认：真的要清空全部数据吗？')) {
         if (typeof clearAllData === 'function') {
           clearAllData();

@@ -218,7 +218,7 @@ C:\Users\ASUS\Desktop\vs_code\vsCode_test\
 
 ---
 
-## 数据模型
+## 数据模型（当前版本 v2）
 
 ```javascript
 // localStorage key: 'sb_courses'
@@ -226,7 +226,7 @@ courses: [
   {
     id: "1716123456789_abc123",
     name: "数学分析",
-    color: "#3b82f6",
+    color: "#8a9b9e",          // 莫兰迪色系
     createdAt: "2026-05-20",
     chapters: [
       {
@@ -243,19 +243,23 @@ courses: [
               { id: "...", title: "Bemerkung", content: "..." },
               { id: "...", title: "Beweis", content: "..." },
               { id: "...", title: "意义/运用", content: "..." }
-            ]
+            ],
+            // ★ 第二阶段新增字段（计划中）
+            parentId: null,           // null=顶层概念, 指向父概念id=子概念
+            children: []              // 子概念数组（最多嵌套3层）
           }
         ]
       }
     ],
     mindmapConnections: [
-      { from: "conceptId1", to: "conceptId2", label: "推导自" }
+      { from: "conceptId1", to: "conceptId2", label: "推导自",
+        waypoints: [{ x: 300, y: 200 }] }  // 可选拐点
     ],
     mindmapNodePositions: {
       "conceptId1": { x: 120, y: 80 }
     },
     mindmapNodeColors: {
-      "conceptId1": "#3b82f6"
+      "conceptId1": "#8a9b9e"
     }
   }
 ]
@@ -269,7 +273,7 @@ examples: [
     solution: "解题思路（支持 LaTeX）",
     tags: ["极限", "连续"],
     images: ["data:image/png;base64,..."],
-    pdfs: ["data:application/pdf;base64,..."],
+    pdfs: [{ data: "data:application/pdf;base64,...", name: "文件名.pdf" }],
     courseId: "courseId"
   }
 ]
@@ -277,7 +281,7 @@ examples: [
 
 ---
 
-## 已完成进度（8 个阶段）
+## 已完成进度（8 个阶段）— 全部完成 ✅
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
@@ -287,69 +291,80 @@ examples: [
 | 4 | 概念 & 推导区块（concepts.js + formulaBar.js — KaTeX预览 + 自定义区块） | ✅ 完成 |
 | 5 | 例题模块（examples.js — tag + 搜索 + 图片/PDF上传） | ✅ 完成 |
 | 6 | LaTeX 公式参考库（latexRef.js — 9分类150+符号 + 点击复制） | ✅ 完成 |
-| 7 | 思维导图（mindmap.js — SVG + foreignObject + 拖拽 + 曲线连线 + 颜色 + 缩放） | ⚠️ 基本完成，但节点大小需修复 |
-| 8 | 导出/导入 & 收尾优化 | ❌ 待做 |
+| 7 | 思维导图（mindmap.js — SVG + foreignObject + 拖拽 + 曲线连线 + 颜色 + 缩放） | ✅ 完成 |
+| 8 | 导出/导入 & 收尾优化 | ✅ 完成 |
+
+### 阶段 7 完整修复内容
+- 节点大小动态自适应（`estimateTextLines` 按中/英文字符宽度估算行数）
+- 连线箭头修复（SVG 命名空间 + 边缘裁剪 `clipToRectEdge`）
+- Ctrl+Z 撤销功能（50 条快照栈）
+- 连线选中（红色高亮 + Delete 键删除）
+- 连线多点拐弯（双击起点 → 点击空白加拐点 → 点击目标完成，拐点可拖拽/右键删除）
+
+### 阶段 8 完成内容
+- 思维导图导出 PDF（新窗口 + 浏览器打印 → 另存为 PDF）
+- 全部数据导出/导入 JSON（含思维导图数据）
+- 清空数据按钮（双重确认）
+- UI 重设计：莫兰迪复古杂志风（dusty-blue + dusty-rose 撞色，暖灰阶，手绘风格边框）
+- Git 初始化 + GitHub Pages 部署（yww77/StudyBoard）
+- 线上地址：https://yww77.github.io/StudyBoard/
 
 ---
 
-## 当前待办事项（详细）
+## 下一阶段计划（待实施）
 
-### 待办 1：修复思维导图节点大小问题 ★ 当前正在做
+> 优先级从高到低排列。上次对话已完成全部 8 阶段，以下是新需求。
 
-**文件**：`src/js/mindmap.js`
+### 第一阶段：减少代码冗余（安全重构，不改功能）
 
-**问题**：节点使用固定尺寸，文字被 `white-space:nowrap` + `text-overflow:ellipsis` + `overflow:hidden` 截断。
+**目标**：减少 ~250 行重复代码，提高可维护性。
 
-**已完成的部分修改**：`nodeW` 已从 175 改为 210（第 184 行）
+| # | 改动 | 涉及文件 | 说明 |
+|---|------|----------|------|
+| 1.1 | 提取公共 `safeRenderKatex(latex, target, displayMode)` | `utils.js` → `concepts.js`、`latexRef.js`、`mindmap.js`、`examples.js` | KaTeX 安全检查 + try/catch 渲染逻辑重复了 5 次，统一为一个公共函数 |
+| 1.2 | 消除例题筛选重复 | `examples.js` | `renderExampleView()` 和 `refreshExampleResults()` 有 15 行一模一样的过滤逻辑，抽取为 `filterExamples(allExamples, query, courseId)` |
+| 1.3 | 提取嵌套数据操作辅助 | `storage.js` | 几乎所有 CRUD 都重复 `getCourseById → find chapter → find concept → modify → updateCourse`，增加便捷函数如 `updateConceptInChapter()`、`getChapter()` |
+| 1.4 | 弹窗事件绑定去 `setTimeout(50)` | `app.js` | `showModal` 增加 `onReady(overlay)` 回调参数，DOM 插入后立即触发，消除 6 处硬编码延迟 |
+| 1.5 | 提取高频 CSS 工具类 | `styles.css` | 增加 `.flex-between`、`.text-muted`、`.gap-sm/md` 等原子类，替换 JS 模板字符串中大量内联 `style="..."` |
+| 1.6 | 清理未使用/不一致代码 | `utils.js`、多文件 | `el()` 工具函数几乎未用；部分地方 `escapeHtml` 漏用需补上 |
 
-**仍需修改的位置**：
+### 第二阶段：概念三层层级系统 ★ 核心需求
 
-1. **第 185 行** — `nodeH` 需要从固定值改为动态计算：
-   ```
-   当前：const nodeH = node.formula ? 82 : 52;
-   需要：根据 name、formula、description 的文本长度估算行数，动态计算高度
-   ```
+**目标**：一个概念可以包含多层子知识点，最多嵌套 3 层（总概念 → 子概念 → 子子概念）。
 
-2. **第 227 行** — formula 渲染的 style 需要改为：
-   ```
-   当前：style="...overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;"
-   需要：style="...word-wrap:break-word;overflow-wrap:break-word;"（移除截断样式）
-   ```
+**数据模型变更**：
+```javascript
+// 旧概念（扁平列表）
+concept: { id, name, description, formula, derivationBlocks }
 
-3. **第 229 行** — formula 错误时的截断需移除：
-   ```
-   当前：escapeHtml(node.formula.substring(0, 40))
-   需要：escapeHtml(node.formula)（显示完整公式文本）
-   ```
+// 新概念（支持三层树）
+concept: {
+  id, name, description, formula, derivationBlocks,
+  parentId: null | string,   // null = 顶层概念，非 null = 指向父概念 id
+  children: []               // 子概念数组（可再嵌套一层）
+}
+```
 
-4. **第 234 行** — fo.innerHTML 的外层 div style 需要改为：
-   ```
-   当前：overflow:hidden;height:100%;...
-   需要：移除 overflow:hidden，改为 word-wrap:break-word;overflow-wrap:break-word;
-   ```
+| # | 改动 | 涉及文件 | 说明 |
+|---|------|----------|------|
+| 2.1 | 概念弹窗增加「父概念」下拉选择 | `concepts.js` | 列出当前章节内已有概念，限制深度 ≤2 的才能做父级（防止超过 3 层）；新建时可选择挂在哪级下 |
+| 2.2 | 树形渲染替换扁平列表 | `concepts.js` | `renderConceptsInChapter` 改为递归函数，每层左侧缩进 20px + 层级色条区分（蓝/玫红/灰） |
+| 2.3 | 展开/折叠交互 | `concepts.js` | 父概念展开显示子树，折叠隐藏整棵子树；折叠按钮带 ▶/▼ 旋转箭头 |
+| 2.4 | 旧数据兼容迁移 | `storage.js` | 读取数据时自动为缺少 `parentId`/`children` 的概念补上默认值（`parentId: null, children: []`） |
+| 2.5 | 删除级联处理 | `concepts.js` | 删除父概念时弹窗提示「将同时删除其下 N 个嵌套子概念」 |
+| 2.6 | 思维导图适配 | `mindmap.js` | 默认只展示顶层概念节点；右键菜单增加「展开子概念」/「折叠子树」选项 |
 
-5. **第 235 行** — 名称 div 需要改为：
-   ```
-   当前：overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-   需要：word-wrap:break-word;（允许换行）
-   ```
+### 第三阶段：手机屏幕适配（暂不强求）
 
-6. **第 237 行** — 描述 div 需要改为：
-   ```
-   当前：overflow:hidden;text-overflow:ellipsis;white-space:nowrap; + substring(0, 50)
-   需要：word-wrap:break-word;（允许换行）+ 显示完整描述
-   ```
+| # | 改动 | 涉及文件 | 说明 |
+|---|------|----------|------|
+| 3.1 | 侧边栏 → 汉堡菜单 | `styles.css` + `app.js` | ≤768px 侧边栏隐藏，顶栏出现 ☰ 按钮，点击从左侧滑入覆盖层 |
+| 3.2 | 触摸拖拽 + 双指缩放 | `mindmap.js` | 单指拖拽节点，双指平移/缩放画布，点击热区增大到 44px |
+| 3.3 | 弹窗移动端适配 | `styles.css` | 小屏弹窗改为底部抽屉式（`border-radius: 16px 16px 0 0`，max-height: 70vh） |
+| 3.4 | 课程网格单列 | `styles.css` | ≤480px 时 `grid-template-columns: 1fr` |
 
-**实现思路**：在 `nodes.forEach` 内添加一个 `estimateTextHeight(text, fontSize, maxWidth)` 辅助函数，基于字符宽度估算（中文字符 ≈ fontSize px，拉丁字符 ≈ fontSize×0.55 px），计算所需行数，累加得到 `nodeH`。
-
-### 待办 2：阶段 8 — 导出/导入 & 收尾优化
-
-**文件**：`src/js/storage.js`（导出/导入函数已存在）、`src/js/app.js`、`src/js/formulaBar.js`
-
-1. **导出/导入功能已编码**（`exportData()` / `importData()` 在 storage.js），但需确认 UI 按钮已正确绑定（在 app.js 的 `bindEvents()` 中）
-2. **公式快捷工具栏集成**：`formulaBar.js` 已编码但需要在概念编辑弹窗的公式 textarea 旁边显示
-3. **清空数据按钮**：需要在 UI 中添加，含二次确认弹窗
-4. **最终 UI 打磨**：检查各视图的空状态提示、间距、文字一致性
+### 建议执行顺序
+第一阶段 → 第二阶段 → 第三阶段。第一阶段不改功能只优化代码，为第二阶段铺路。
 
 ---
 
@@ -361,38 +376,38 @@ examples: [
 2. 输入以下内容：
    ```
    我正在做一个名为 StudyBoard 的纯前端学习复习网站。
-   项目在 C:\Users\ASUS\Desktop\vs_code\vsCode_test\
+   项目在 C:\Users\ASUS\Desktop\vs_code\StudyBoard\
    
-   请先阅读以下文件了解项目全貌：
-   1. CLAUDE.md — 项目指引
-   2. HANDOFF.md — 交接文档（包含全部进度和待办）
-   3. src/js/mindmap.js — 思维导图模块（当前有 bug 需要修复）
-   
-   然后帮我继续 [你的具体需求]
+   请先阅读 HANDOFF.md 了解项目全貌和待办计划。
+   然后帮我继续 [你的具体需求，如"第一阶段：减少代码冗余"或"第二阶段：概念层级系统"]
    ```
 3. Claude 会自动读取相关文件并继续工作
 
-### 方法 2：让 Claude 自己探索
+### 方法 2：直接说任务
 
-1. 打开新对话
-2. 输入：
+1. 新对话中直接说任务名：
    ```
-   请阅读 C:\Users\ASUS\Desktop\vs_code\vsCode_test\ 下的 CLAUDE.md 和 HANDOFF.md，
-   了解项目状态后告诉我你理解的情况，然后我们继续开发。
+   继续 StudyBoard 项目，请从 HANDOFF.md 的「第一阶段」开始：减少代码冗余
+   ```
+   或：
+   ```
+   继续 StudyBoard 项目，请实现 HANDOFF.md 的「第二阶段」：概念三层层级系统
    ```
 
-### 方法 3：直接说任务（最快）
+### 当前待执行任务速览
 
-1. 新对话中直接说：
-   ```
-   继续修复 C:\Users\ASUS\Desktop\vs_code\vsCode_test\src\js\mindmap.js 中的思维导图节点大小问题。
-   当前节点使用固定尺寸导致内容被截断。请先读取 mindmap.js 然后修复，让节点能显示完整内容。
-   ```
+| 任务 | 状态 | 预计改动量 |
+|------|------|-----------|
+| 第一阶段：减少代码冗余 | 🔴 待开始 | ~250 行净减少 |
+| 第二阶段：概念三层层级 | 🔴 待开始 | 涉及 6 个子任务 |
+| 第三阶段：手机屏幕适配 | ⚪ 暂不强求 | 涉及 4 个子任务 |
 
 ### 重要提示
 
-- 这个项目**不是 git 仓库**，没有版本控制
-- 浏览器打开 `src/index.html` 即可测试（无需服务器）
+- 项目已初始化 git 仓库，远程为 `yww77/StudyBoard`（GitHub）
+- GitHub Actions 自动部署到 `gh-pages` 分支
+- 线上地址：https://yww77.github.io/StudyBoard/
+- 浏览器打开 `src/index.html` 即可本地测试（无需服务器）
 - KaTeX 通过 jsdelivr CDN 加载，需要网络连接
 - 所有数据存在 localStorage，F12 → Application → Local Storage 可查看
 - 开发日志在 `devlog/2026-05-20.md`

@@ -6,41 +6,45 @@
 let exampleSearchQuery = '';
 let exampleFilterCourseId = null;
 
+// ===== 例题筛选（公共函数） =====
+function filterExamples(allExamples, query, courseId) {
+  let examples = allExamples;
+  if (courseId) {
+    examples = examples.filter(e => e.courseId === courseId);
+  }
+  if (query && query.trim()) {
+    const q = query.trim().toLowerCase();
+    examples = examples.filter(e => {
+      const titleMatch = (e.title || '').toLowerCase().includes(q);
+      const contentMatch = (e.content || '').toLowerCase().includes(q);
+      const tagList = Array.isArray(e.tags) ? e.tags : [];
+      const tagMatch = tagList.some(t => (t || '').toLowerCase() === q);
+      return titleMatch || contentMatch || tagMatch;
+    });
+  }
+  return examples;
+}
+
 // ===== 例题主视图 =====
 function renderExampleView() {
   const content = document.getElementById('content');
   const courses = getCourses();
   const allExamples = getExamples();
 
-  // 筛选
-  let examples = allExamples;
-  if (exampleFilterCourseId) {
-    examples = examples.filter(e => e.courseId === exampleFilterCourseId);
-  }
-  if (exampleSearchQuery.trim()) {
-    const q = exampleSearchQuery.trim().toLowerCase();
-    examples = examples.filter(e => {
-      const titleMatch = (e.title || '').toLowerCase().includes(q);
-      const contentMatch = (e.content || '').toLowerCase().includes(q);
-      const tagList = Array.isArray(e.tags) ? e.tags : [];
-      // Tag 精确匹配（不是子串匹配）
-      const tagMatch = tagList.some(t => (t || '').toLowerCase() === q);
-      return titleMatch || contentMatch || tagMatch;
-    });
-  }
+  const examples = filterExamples(allExamples, exampleSearchQuery, exampleFilterCourseId);
 
   content.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);">📝 例题库</h2>
-      <button class="btn btn-primary" id="btnNewExample">+ 新建例题</button>
+    <div class="flex-between" style="margin-bottom:16px;">
+      <h2 style="font-size:18px;font-weight:700;color:var(--ink);"><i data-lucide="file-text"></i> 例题库</h2>
+      <button class="btn btn-primary" id="btnNewExample"><i data-lucide="plus"></i> 新建例题</button>
     </div>
 
-    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+    <div class="flex-wrap gap-md" style="margin-bottom:16px;">
       <div class="search-bar" style="flex:1;min-width:200px;margin-bottom:0;">
         <input type="text" id="exampleSearch" placeholder="搜索标题、Tag（tag 精确匹配）..." value="${escapeHtml(exampleSearchQuery)}" autocomplete="off">
       </div>
       <select class="form-input" id="exampleCourseFilter" style="width:180px;">
-        <option value="">📚 全部课程</option>
+        <option value="">全部课程</option>
         ${courses.map(c => `
           <option value="${c.id}" ${exampleFilterCourseId === c.id ? 'selected' : ''}>
             ${escapeHtml(c.name)}
@@ -52,7 +56,7 @@ function renderExampleView() {
     <div id="exampleResults">
       ${examples.length === 0 ? `
         <div class="empty-state">
-          <div class="empty-icon">📝</div>
+          <div class="empty-icon"><i data-lucide="file-text"></i></div>
           <p>${allExamples.length === 0 ? '还没有任何例题，点击上方按钮添加' : '没有匹配的例题'}</p>
         </div>` : `
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;" id="exampleGrid">
@@ -77,13 +81,15 @@ function renderExampleView() {
   });
 
   bindExampleCardEvents();
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ===== 例题卡片 =====
 function renderExampleCard(example) {
   const course = getCourseById(example.courseId);
   const fileCount = (example.images || []).length + (example.pdfs || []).length;
-  const fileHint = fileCount > 0 ? `<span style="font-size:11px;color:var(--warm-400);">📎 ${fileCount} 个附件</span>` : '';
+  const fileHint = fileCount > 0 ? `<span class="text-muted"><i data-lucide="paperclip"></i> ${fileCount} 个附件</span>` : '';
 
   const imagesHtml = (example.images || []).slice(0, 3).map(img => `
     <img src="${img}" class="image-thumb" onclick="event.stopPropagation();window.open('${img}')" style="width:40px;height:40px;object-fit:cover;">
@@ -101,19 +107,19 @@ function renderExampleCard(example) {
     <div class="card example-card" data-example-id="${example.id}">
       <div class="card-header">
         <span class="card-title">${escapeHtml(example.title)}</span>
-        <div style="display:flex;gap:4px;">
-          <button class="btn-icon btn-edit-example" data-example-id="${example.id}" title="编辑">✏️</button>
-          <button class="btn-icon btn-delete-example" data-example-id="${example.id}" title="删除">🗑️</button>
+        <div class="flex-center gap-xs">
+          <button class="btn-icon btn-edit-example" data-example-id="${example.id}" title="编辑"><i data-lucide="pencil"></i></button>
+          <button class="btn-icon btn-delete-example" data-example-id="${example.id}" title="删除"><i data-lucide="trash-2"></i></button>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--warm-400);margin-bottom:6px;">
-        ${course ? `📚 ${escapeHtml(course.name)}` : '未分类'}
+      <div class="text-muted" style="margin-bottom:6px;">
+        ${course ? `<i data-lucide="book-marked"></i> ${escapeHtml(course.name)}` : '未分类'}
       </div>
-      <div style="font-size:13px;color:var(--warm-600);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+      <div style="font-size:13px;color:var(--ink-light);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
         ${escapeHtml(plainPreview)}${hasMore ? '...' : ''}
       </div>
       ${tagsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${tagsHtml}</div>` : ''}
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+      <div class="flex-between" style="margin-top:6px;">
         <div style="display:flex;gap:4px;">${imagesHtml}</div>
         ${fileHint}
       </div>
@@ -126,25 +132,12 @@ function refreshExampleResults() {
   if (!resultsDiv) return;
 
   const allExamples = getExamples();
-  let examples = allExamples;
-  if (exampleFilterCourseId) {
-    examples = examples.filter(e => e.courseId === exampleFilterCourseId);
-  }
-  if (exampleSearchQuery.trim()) {
-    const q = exampleSearchQuery.trim().toLowerCase();
-    examples = examples.filter(e => {
-      const titleMatch = (e.title || '').toLowerCase().includes(q);
-      const contentMatch = (e.content || '').toLowerCase().includes(q);
-      const tagList = Array.isArray(e.tags) ? e.tags : [];
-      const tagMatch = tagList.some(t => (t || '').toLowerCase() === q);
-      return titleMatch || contentMatch || tagMatch;
-    });
-  }
+  const examples = filterExamples(allExamples, exampleSearchQuery, exampleFilterCourseId);
 
   if (examples.length === 0) {
     resultsDiv.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📝</div>
+        <div class="empty-icon"><i data-lucide="file-text"></i></div>
         <p>${allExamples.length === 0 ? '还没有任何例题' : '没有匹配的例题'}</p>
       </div>`;
   } else {
@@ -154,6 +147,8 @@ function refreshExampleResults() {
       </div>`;
   }
   bindExampleCardEvents();
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ===== 绑定卡片事件 =====
@@ -211,10 +206,10 @@ function showExampleDetailModal(example) {
   `).join('');
 
   const pdfsHtml = (example.pdfs || []).map((pdf, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--warm-bg);border:1px solid var(--warm-200);border-radius:6px;margin-bottom:4px;cursor:pointer;"
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--paper);border:2px solid var(--ink);border-radius:var(--radius);margin-bottom:4px;cursor:pointer;"
          class="pdf-link" data-pdf-index="${i}">
-      <span style="font-size:20px;">📄</span>
-      <span style="font-size:13px;color:var(--dusty-blue);">${escapeHtml(pdf.name)}</span>
+      <i data-lucide="file"></i>
+      <span style="font-size:13px;color:var(--slate);">${escapeHtml(pdf.name)}</span>
     </div>
   `).join('');
 
@@ -224,43 +219,40 @@ function showExampleDetailModal(example) {
 
   const bodyHtml = `
     <div style="margin-bottom:12px;">
-      ${course ? `<span class="tag" style="margin-right:8px;">📚 ${escapeHtml(course.name)}</span>` : ''}
+      ${course ? `<span class="tag" style="margin-right:8px;"><i data-lucide="book-marked"></i> ${escapeHtml(course.name)}</span>` : ''}
       ${tagsHtml}
     </div>
     <div style="margin-bottom:12px;">
-      <label style="font-weight:600;font-size:12px;color:var(--warm-500);">题目</label>
-      <div style="padding:8px;background:var(--warm-bg);border-radius:6px;margin-top:4px;" class="latex-content">
+      <label style="font-weight:600;font-size:12px;color:var(--ink-light);">题目</label>
+      <div style="padding:8px;background:var(--paper);border-radius:var(--radius);margin-top:4px;" class="latex-content">
         ${renderMixedLatex(example.content || '')}
       </div>
     </div>
     ${example.solution ? `
       <div style="margin-bottom:12px;">
-        <label style="font-weight:600;font-size:12px;color:var(--warm-500);">解题思路</label>
-        <div style="padding:8px;background:var(--warm-bg);border-radius:6px;margin-top:4px;" class="latex-content">
+        <label style="font-weight:600;font-size:12px;color:var(--ink-light);">解题思路</label>
+        <div style="padding:8px;background:var(--paper);border-radius:var(--radius);margin-top:4px;" class="latex-content">
           ${renderMixedLatex(example.solution)}
         </div>
       </div>` : ''}
     ${(imagesHtml || pdfsHtml) ? `
       <div>
-        <label style="font-weight:600;font-size:12px;color:var(--warm-500);">附件</label>
+        <label style="font-weight:600;font-size:12px;color:var(--ink-light);">附件</label>
         <div style="margin-top:4px;">${imagesHtml}${pdfsHtml}</div>
       </div>` : ''}
     <div style="display:flex;justify-content:flex-end;margin-top:16px;">
       <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove();showExampleModal(getExamples().find(e=>e.id==='${example.id}'))">编辑</button>
     </div>`;
 
-  showModal(example.title, bodyHtml, () => {});
-
-  // 绑定 PDF 点击事件
-  setTimeout(() => {
-    document.querySelectorAll('.pdf-link').forEach(el => {
+  showModal(example.title, bodyHtml, () => {}, (overlay) => {
+    overlay.querySelectorAll('.pdf-link').forEach(el => {
       el.addEventListener('click', () => {
         const idx = parseInt(el.dataset.pdfIndex);
         const pdf = (example.pdfs || [])[idx];
         if (pdf) openPdf(pdf.data, pdf.name);
       });
     });
-  }, 50);
+  });
 }
 
 // ===== 新建/编辑例题弹窗 =====
@@ -283,22 +275,22 @@ function showExampleModal(existingExample = null) {
   (example.images || []).forEach((img, i) => {
     filePreviewHtml += `
       <div style="position:relative;display:inline-block;margin:4px;">
-        <img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--warm-200);">
+        <img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--ink);">
         <button class="btn-remove-file" data-type="image" data-index="${i}"
-                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red-500);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;">✕</button>
+                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;"><i data-lucide="x"></i></button>
       </div>`;
   });
   (example.pdfs || []).forEach((pdf, i) => {
     filePreviewHtml += `
-      <div style="position:relative;display:inline-block;margin:4px;padding:8px;background:var(--warm-bg);border:1px solid var(--warm-200);border-radius:6px;width:80px;text-align:center;">
-        <span style="font-size:24px;">📄</span>
-        <div style="font-size:10px;color:var(--warm-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(pdf.name)}">${escapeHtml(pdf.name)}</div>
+      <div style="position:relative;display:inline-block;margin:4px;padding:8px;background:var(--paper);border:2px solid var(--ink);border-radius:var(--radius);width:80px;text-align:center;">
+        <i data-lucide="file" style="width:24px;height:24px;"></i>
+        <div style="font-size:10px;color:var(--ink-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(pdf.name)}">${escapeHtml(pdf.name)}</div>
         <button class="btn-remove-file" data-type="pdf" data-index="${i}"
-                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red-500);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;">✕</button>
+                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;"><i data-lucide="x"></i></button>
       </div>`;
   });
 
-  const tagsStr = (example.tags || []).map(t => `<span class="tag">${escapeHtml(t)} <span class="tag-remove" data-tag="${escapeHtml(t)}">✕</span></span>`).join(' ');
+  const tagsStr = (example.tags || []).map(t => `<span class="tag">${escapeHtml(t)} <span class="tag-remove" data-tag="${escapeHtml(t)}"><i data-lucide="x"></i></span></span>`).join(' ');
 
   const bodyHtml = `
     <div class="form-group">
@@ -330,7 +322,7 @@ function showExampleModal(existingExample = null) {
     </div>
     <div class="form-group">
       <label>Tag 标签（与概念关联，回车添加）</label>
-      <div id="tagContainer" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;border:1px solid var(--warm-300);border-radius:6px;min-height:36px;">
+      <div id="tagContainer" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;border:2px solid var(--ink);border-radius:var(--radius);min-height:36px;">
         ${tagsStr}
         <input id="tagInput" placeholder="输入 tag 后按回车..." style="border:none;outline:none;flex:1;min-width:100px;font-size:13px;">
       </div>
@@ -378,12 +370,9 @@ function showExampleModal(existingExample = null) {
     overlay.remove();
     renderExampleView();
     showToast(isEdit ? '例题已更新' : '例题创建成功', 'success');
-  });
-
-  // Tag 输入逻辑
-  setTimeout(() => {
-    const tagInput = document.getElementById('tagInput');
-    const tagContainer = document.getElementById('tagContainer');
+  }, (overlay) => {
+    const tagInput = overlay.querySelector('#tagInput');
+    const tagContainer = overlay.querySelector('#tagContainer');
 
     if (!tagInput || !tagContainer) return;
 
@@ -393,11 +382,11 @@ function showExampleModal(existingExample = null) {
       // 检查是否已存在
       const existing = tagContainer.querySelectorAll('.tag');
       for (const el of existing) {
-        if (el.textContent.replace('✕', '').trim() === tag) return;
+        if (el.textContent.trim() === tag) return;
       }
       const tagEl = document.createElement('span');
       tagEl.className = 'tag';
-      tagEl.innerHTML = `${escapeHtml(tag)} <span class="tag-remove">✕</span>`;
+      tagEl.innerHTML = `${escapeHtml(tag)} <span class="tag-remove"><i data-lucide="x"></i></span>`;
       tagEl.querySelector('.tag-remove').addEventListener('click', () => tagEl.remove());
       tagContainer.insertBefore(tagEl, tagInput);
     }
@@ -422,7 +411,7 @@ function showExampleModal(existingExample = null) {
     });
 
     // 文件上传（图片 + PDF）
-    const fileInput = document.getElementById('exampleFileInput');
+    const fileInput = overlay.querySelector('#exampleFileInput');
     if (fileInput) {
       fileInput.addEventListener('change', (e) => {
         const files = Array.from(e.target.files);
@@ -443,7 +432,7 @@ function showExampleModal(existingExample = null) {
         });
       });
     }
-  }, 50);
+  });
 }
 
 // ===== 刷新文件预览（图片 + PDF） =====
@@ -455,21 +444,22 @@ function refreshFilePreview(images, pdfs) {
   (images || []).forEach((img, i) => {
     html += `
       <div style="position:relative;display:inline-block;margin:4px;">
-        <img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--warm-200);">
+        <img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:2px solid var(--ink);">
         <button data-remove-image="${i}"
-                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red-500);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;">✕</button>
+                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;"><i data-lucide="x"></i></button>
       </div>`;
   });
   (pdfs || []).forEach((pdf, i) => {
     html += `
-      <div style="position:relative;display:inline-block;margin:4px;padding:8px;background:var(--warm-bg);border:1px solid var(--warm-200);border-radius:6px;width:80px;text-align:center;">
-        <span style="font-size:24px;">📄</span>
-        <div style="font-size:10px;color:var(--warm-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(pdf.name)}">${escapeHtml(pdf.name)}</div>
+      <div style="position:relative;display:inline-block;margin:4px;padding:8px;background:var(--paper);border:2px solid var(--ink);border-radius:var(--radius);width:80px;text-align:center;">
+        <i data-lucide="file" style="width:24px;height:24px;"></i>
+        <div style="font-size:10px;color:var(--ink-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(pdf.name)}">${escapeHtml(pdf.name)}</div>
         <button data-remove-pdf="${i}"
-                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red-500);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;">✕</button>
+                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--danger);color:white;font-size:12px;line-height:20px;text-align:center;cursor:pointer;"><i data-lucide="x"></i></button>
       </div>`;
   });
   preview.innerHTML = html;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 
   preview.querySelectorAll('[data-remove-image]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -519,8 +509,8 @@ function openPdf(dataUrl, filename) {
       iframe { flex: 1; border: none; }
     </style></head><body>
     <div class="toolbar">
-      <span>📄 ${escapeHtml(filename)}</span>
-      <a href="${dataUrl}" download="${escapeHtml(filename)}">⬇ 下载</a>
+      <span>${escapeHtml(filename)}</span>
+      <a href="${dataUrl}" download="${escapeHtml(filename)}">下载</a>
     </div>
     <iframe src="${dataUrl}"></iframe>
     </body></html>

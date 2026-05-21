@@ -8,7 +8,7 @@ function renderSidebarCourses() {
   const list = document.getElementById('sidebarCourseList');
 
   if (courses.length === 0) {
-    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--warm-400);font-size:12px;">暂无课程<br/>点击下方按钮创建</div>';
+    list.innerHTML = '<div class="text-muted" style="padding:16px;text-align:center;">暂无课程<br/>点击下方按钮创建</div>';
     return;
   }
 
@@ -49,18 +49,18 @@ function renderCourseView() {
   if (courses.length === 0) {
     content.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📚</div>
+        <div class="empty-icon"><i data-lucide="book-marked"></i></div>
         <p>还没有创建任何课程</p>
-        <button class="btn btn-primary" id="btnNewCourseEmpty">+ 创建第一门课程</button>
+        <button class="btn btn-primary" id="btnNewCourseEmpty"><i data-lucide="plus"></i> 创建第一门课程</button>
       </div>`;
     document.getElementById('btnNewCourseEmpty').addEventListener('click', showNewCourseModal);
     return;
   }
 
   content.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);">我的课程</h2>
-      <button class="btn btn-primary" id="btnNewCourseTop">+ 新建课程</button>
+    <div class="flex-between" style="margin-bottom:20px;">
+      <h2 style="font-size:18px;font-weight:700;color:var(--ink);">我的课程</h2>
+      <button class="btn btn-primary" id="btnNewCourseTop"><i data-lucide="plus"></i> 新建课程</button>
     </div>
     <div class="course-grid" id="courseGrid">
       ${courses.map(c => `
@@ -68,8 +68,8 @@ function renderCourseView() {
           <div class="card-header">
             <span class="card-title">${escapeHtml(c.name)}</span>
             <div style="display:flex;gap:4px;">
-              <button class="btn-icon btn-rename-course" data-course-id="${c.id}" title="重命名">✏️</button>
-              <button class="btn-icon btn-delete-course" data-course-id="${c.id}" title="删除">🗑️</button>
+              <button class="btn-icon btn-rename-course" data-course-id="${c.id}" title="重命名"><i data-lucide="pencil"></i></button>
+              <button class="btn-icon btn-delete-course" data-course-id="${c.id}" title="删除"><i data-lucide="trash-2"></i></button>
             </div>
           </div>
           <div class="course-meta">
@@ -121,6 +121,8 @@ function renderCourseView() {
       showRenameCourseModal(course);
     });
   });
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ===== 新建课程弹窗 =====
@@ -165,11 +167,8 @@ function showNewCourseModal() {
     renderSidebarCourses();
     renderCourseView();
     showToast('课程创建成功', 'success');
-  });
-
-  // 颜色选择交互
-  setTimeout(() => {
-    const opts = document.querySelectorAll('#colorOptions .color-option');
+  }, (overlay) => {
+    const opts = overlay.querySelectorAll('#colorOptions .color-option');
     opts.forEach(opt => {
       opt.addEventListener('click', () => {
         opts.forEach(o => o.classList.remove('selected'));
@@ -177,7 +176,7 @@ function showNewCourseModal() {
         document.getElementById('newCourseColor').value = opt.dataset.color;
       });
     });
-  }, 50);
+  });
 }
 
 // ===== 重命名课程弹窗 =====

@@ -24,6 +24,42 @@ function debounce(fn, delay) {
   };
 }
 
+// ===== KaTeX 安全渲染（公共函数） =====
+
+// 安全渲染 LaTeX 到 DOM 元素（原地设置 innerHTML）
+// latex: LaTeX 源码字符串
+// target: DOM 元素
+// displayMode: true = 块级公式（居中）, false = 行内公式
+function safeRenderKatex(latex, target, displayMode = true) {
+  if (!target) return;
+  if (typeof katex === 'undefined') {
+    target.innerHTML = '<span style="color:#f59e0b;font-size:12px;">⚠ KaTeX 未加载，请检查网络后刷新页面</span>';
+    return;
+  }
+  if (!latex || !latex.trim()) {
+    target.innerHTML = '';
+    return;
+  }
+  try {
+    katex.render(latex.trim(), target, { throwOnError: false, displayMode });
+  } catch (e) {
+    target.innerHTML = '<span style="color:var(--red);font-size:12px;">公式语法错误：请检查 LaTeX 代码</span>';
+  }
+}
+
+// 安全渲染 LaTeX 为 HTML 字符串
+// 成功返回 HTML 字符串，失败返回 null（调用方自行处理回退）
+// displayMode: true = 块级公式, false = 行内公式
+function safeRenderKatexToString(latex, displayMode = true) {
+  if (typeof katex === 'undefined') return null;
+  if (!latex || !latex.trim()) return '';
+  try {
+    return katex.renderToString(latex.trim(), { throwOnError: false, displayMode });
+  } catch (e) {
+    return null;
+  }
+}
+
 // 转义 HTML 特殊字符，防止 XSS
 function escapeHtml(str) {
   const map = {

@@ -45,23 +45,23 @@ function renderChapterView(course) {
   if (chapters.length === 0) {
     chaptersHtml = `
       <div class="empty-state">
-        <div class="empty-icon">📖</div>
+        <div class="empty-icon"><i data-lucide="book-open"></i></div>
         <p>暂无章节，开始构建知识框架吧</p>
       </div>`;
   } else {
     chaptersHtml = `<div id="chapterList">` + chapters.map((ch, i) => `
       <div class="card chapter-card" style="margin-bottom:8px;" data-chapter-id="${ch.id}">
         <div class="card-header">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="color:var(--warm-400);font-size:14px;font-weight:600;">Ch ${i + 1}</span>
+          <div class="flex-center gap-sm">
+            <span style="color:var(--ink-muted);font-size:14px;font-weight:600;">Ch ${i + 1}</span>
             <span class="card-title">${escapeHtml(ch.title)}</span>
-            <span style="font-size:12px;color:var(--warm-400);">${(ch.concepts || []).length} 个概念</span>
+            <span class="text-muted">${(ch.concepts || []).length} 个概念</span>
           </div>
-          <div style="display:flex;gap:4px;">
-            <button class="btn-icon btn-move-up" data-chapter-id="${ch.id}" title="上移" ${i === 0 ? 'disabled style="opacity:0.3"' : ''}>⬆️</button>
-            <button class="btn-icon btn-move-down" data-chapter-id="${ch.id}" title="下移" ${i === chapters.length - 1 ? 'disabled style="opacity:0.3"' : ''}>⬇️</button>
-            <button class="btn-icon btn-rename-chapter" data-chapter-id="${ch.id}" title="重命名">✏️</button>
-            <button class="btn-icon btn-delete-chapter" data-chapter-id="${ch.id}" title="删除">🗑️</button>
+          <div class="flex-center gap-xs">
+            <button class="btn-icon btn-move-up" data-chapter-id="${ch.id}" title="上移" ${i === 0 ? 'disabled style="opacity:0.3"' : ''}><i data-lucide="chevron-up"></i></button>
+            <button class="btn-icon btn-move-down" data-chapter-id="${ch.id}" title="下移" ${i === chapters.length - 1 ? 'disabled style="opacity:0.3"' : ''}><i data-lucide="chevron-down"></i></button>
+            <button class="btn-icon btn-rename-chapter" data-chapter-id="${ch.id}" title="重命名"><i data-lucide="pencil"></i></button>
+            <button class="btn-icon btn-delete-chapter" data-chapter-id="${ch.id}" title="删除"><i data-lucide="trash-2"></i></button>
           </div>
         </div>
         <!-- 概念列表占位（阶段 4 填充） -->
@@ -74,18 +74,18 @@ function renderChapterView(course) {
 
   content.innerHTML = `
     <div class="breadcrumb">
-      <span id="breadCourses">📚 课程列表</span>
+      <span id="breadCourses"><i data-lucide="book-marked"></i> 课程列表</span>
       <span class="sep">›</span>
-      <span style="color:var(--warm-700);font-weight:500;">${escapeHtml(course.name)}</span>
+      <span style="color:var(--ink);font-weight:500;">${escapeHtml(course.name)}</span>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);">${escapeHtml(course.name)} — 章节</h2>
-      <button class="btn btn-primary" id="btnNewChapterTop">+ 新建章节</button>
+    <div class="flex-between" style="margin-bottom:16px;">
+      <h2 style="font-size:18px;font-weight:700;color:var(--ink);">${escapeHtml(course.name)} — 章节</h2>
+      <button class="btn btn-primary" id="btnNewChapterTop"><i data-lucide="plus"></i> 新建章节</button>
     </div>
     ${chaptersHtml}
     <div style="margin-top:24px;display:flex;gap:8px;">
-      <button class="btn btn-secondary btn-sm" id="btnQuickExample">📝 添加例题</button>
-      <button class="btn btn-secondary btn-sm" id="btnQuickMindmap">🧠 查看思维导图</button>
+      <button class="btn btn-secondary btn-sm" id="btnQuickExample"><i data-lucide="file-text"></i> 添加例题</button>
+      <button class="btn btn-secondary btn-sm" id="btnQuickMindmap"><i data-lucide="git-graph"></i> 查看思维导图</button>
     </div>`;
 
   // 面包屑
@@ -159,6 +159,8 @@ function renderChapterView(course) {
   // 快速操作
   content.querySelector('#btnQuickExample').addEventListener('click', () => switchTab('examples'));
   content.querySelector('#btnQuickMindmap').addEventListener('click', () => switchTab('mindmap'));
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ===== 重命名章节弹窗 =====

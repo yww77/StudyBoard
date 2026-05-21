@@ -233,7 +233,7 @@ function renderLatexRefView() {
   const activeCategory = LATEX_CATEGORIES.find(c => c.id === latexRefActiveCategory) || LATEX_CATEGORIES[0];
 
   content.innerHTML = `
-    <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);margin-bottom:16px;">📖 公式参考库</h2>
+    <h2 style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:16px;"><i data-lucide="library"></i> 公式参考库</h2>
     <div class="latex-ref-layout">
       <div class="latex-ref-sidebar" id="latexRefSidebar">
         ${LATEX_CATEGORIES.map(c => `
@@ -242,7 +242,7 @@ function renderLatexRefView() {
         `).join('')}
       </div>
       <div class="latex-ref-content" id="latexRefContent">
-        <h3 style="font-size:15px;font-weight:600;color:var(--warm-600);margin-bottom:12px;">
+        <h3 style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:12px;">
           ${activeCategory.name}
         </h3>
         <table class="latex-ref-table">
@@ -251,19 +251,13 @@ function renderLatexRefView() {
           </thead>
           <tbody>
             ${activeCategory.items.map(item => {
-              let rendered = '';
-              if (typeof katex !== 'undefined') {
-                try {
-                  rendered = katex.renderToString(item.code, { throwOnError: false, displayMode: false });
-                } catch (e) {
-                  rendered = '<span style="color:var(--red-500);">渲染失败</span>';
-                }
-              }
+              const rendered = safeRenderKatexToString(item.code, false);
+              const displayHtml = rendered !== null ? rendered : '<span style="color:var(--danger);">渲染失败</span>';
               return `
                 <tr class="latex-ref-row" data-code="${escapeHtml(item.code)}" title="点击复制 LaTeX 代码">
                   <td>${escapeHtml(item.desc)}</td>
                   <td><code class="latex-ref-code">${escapeHtml(item.code)}</code></td>
-                  <td>${rendered}</td>
+                  <td>${displayHtml}</td>
                 </tr>`;
             }).join('')}
           </tbody>
@@ -296,6 +290,8 @@ function renderLatexRefView() {
       }
     });
   });
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // 兜底复制方案
