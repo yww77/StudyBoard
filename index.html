@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StudyBoard — 学习复习助手</title>
 
+  <!-- Google Fonts: Playfair Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+
   <!-- KaTeX CDN -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"></script>
@@ -19,7 +24,7 @@
     <!-- ===== 侧边栏 ===== -->
     <aside id="sidebar">
       <div class="sidebar-header">
-        <h2>📘 StudyBoard</h2>
+        <h2><i data-lucide="book-open"></i> StudyBoard</h2>
         <p>学习复习助手</p>
       </div>
 
@@ -28,13 +33,13 @@
       </div>
 
       <button class="btn btn-primary" id="btnNewCourse" style="margin: 8px 12px;">
-        + 新建课程
+        <i data-lucide="plus"></i> 新建课程
       </button>
 
       <div class="sidebar-footer">
-        <button class="btn btn-secondary btn-sm" id="btnExport">📥 导出</button>
-        <button class="btn btn-secondary btn-sm" id="btnImport">📤 导入</button>
-        <button class="btn btn-sm" id="btnClearData" style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;">🗑 清空</button>
+        <button class="btn btn-secondary btn-sm" id="btnExport"><i data-lucide="download"></i> 导出</button>
+        <button class="btn btn-secondary btn-sm" id="btnImport"><i data-lucide="upload"></i> 导入</button>
+        <button class="btn btn-sm" id="btnClearData" style="background:#fce8e6;color:#b85450;"><i data-lucide="trash-2"></i> 清空</button>
         <input type="file" id="importFileInput" accept=".json" style="display:none;">
       </div>
     </aside>
@@ -43,10 +48,10 @@
     <main id="main">
       <!-- 顶部导航 -->
       <nav id="topbar">
-        <button class="topbar-tab active" data-tab="courses">📚 课程</button>
-        <button class="topbar-tab" data-tab="examples">📝 例题库</button>
-        <button class="topbar-tab" data-tab="mindmap">🧠 思维导图</button>
-        <button class="topbar-tab" data-tab="latexRef">📖 公式参考</button>
+        <button class="topbar-tab active" data-tab="courses"><i data-lucide="book-marked"></i> 课程</button>
+        <button class="topbar-tab" data-tab="examples"><i data-lucide="file-text"></i> 例题库</button>
+        <button class="topbar-tab" data-tab="mindmap"><i data-lucide="git-graph"></i> 思维导图</button>
+        <button class="topbar-tab" data-tab="latexRef"><i data-lucide="library"></i> 公式参考</button>
       </nav>
 
       <!-- 主内容区 -->
@@ -67,6 +72,14 @@
       } else {
         console.log('[StudyBoard] KaTeX v' + katex.version + ' 已就绪 ✓');
       }
+    });
+  </script>
+
+  <!-- Lucide 图标库 -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script>
+    window.addEventListener('load', function() {
+      if (typeof lucide !== 'undefined') { lucide.createIcons(); }
     });
   </script>
 

@@ -83,7 +83,7 @@ function insertAtCursor(textarea, text) {
 function renderFormulaToolbar(targetInputId) {
   return FORMULA_GROUPS.map(group => `
     <div style="margin-bottom:6px;">
-      <span style="font-size:11px;color:var(--warm-400);display:block;margin-bottom:4px;">${group.name}</span>
+      <span class="text-muted" style="display:block;margin-bottom:4px;">${group.name}</span>
       <div style="display:flex;flex-wrap:wrap;gap:4px;">
         ${group.symbols.map(s => `
           <button class="btn btn-secondary btn-sm formula-btn"

@@ -18,17 +18,50 @@ function initStorage() {
   }
 }
 
+// 迁移旧数据：为缺少 parentId / showInMindmap 的概念补上默认值
+function migrateConceptsData(courses) {
+  let migrated = false;
+  (courses || []).forEach(course => {
+    (course.chapters || []).forEach(ch => {
+      (ch.concepts || []).forEach(concept => {
+        if (concept.parentId === undefined) {
+          concept.parentId = null;
+          migrated = true;
+        }
+        if (concept.showInMindmap === undefined) {
+          concept.showInMindmap = true;
+          migrated = true;
+        }
+      });
+    });
+  });
+  return migrated;
+}
+
 // ===== 课程操作 =====
 function getCourses() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.courses)) || [];
+    const courses = JSON.parse(localStorage.getItem(STORAGE_KEYS.courses)) || [];
+    if (migrateConceptsData(courses)) {
+      // 静默写回迁移后的数据
+      localStorage.setItem(STORAGE_KEYS.courses, JSON.stringify(courses));
+    }
+    return courses;
   } catch (e) {
     return [];
   }
 }
 
 function saveCourses(courses) {
-  localStorage.setItem(STORAGE_KEYS.courses, JSON.stringify(courses));
+  try {
+    localStorage.setItem(STORAGE_KEYS.courses, JSON.stringify(courses));
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      showToast('存储空间不足！请清理例题中的大图片/PDF 或导出数据后清空', 'error');
+    } else {
+      showToast('数据保存失败', 'error');
+    }
+  }
 }
 
 function getCourseById(courseId) {
@@ -62,6 +95,64 @@ function deleteCourse(courseId) {
   saveExamples(examples);
 }
 
+// ===== 嵌套数据辅助函数 =====
+
+// 按 courseId + chapterId 定位章节，返回 { course, chapter } 或 null
+function getChapter(courseId, chapterId) {
+  const course = getCourseById(courseId);
+  if (!course) return null;
+  const chapter = (course.chapters || []).find(ch => ch.id === chapterId);
+  if (!chapter) return null;
+  return { course, chapter };
+}
+
+// 按 courseId + chapterId + conceptId 定位概念，返回 { course, chapter, concept } 或 null
+function getConcept(courseId, chapterId, conceptId) {
+  const result = getChapter(courseId, chapterId);
+  if (!result) return null;
+  const concept = (result.chapter.concepts || []).find(c => c.id === conceptId);
+  if (!concept) return null;
+  return { course: result.course, chapter: result.chapter, concept };
+}
+
+// 创建或更新概念（按 concept.id 判断），自动写回 storage
+function saveConcept(courseId, chapterId, concept) {
+  const result = getChapter(courseId, chapterId);
+  if (!result) return false;
+  const { course, chapter } = result;
+  if (!chapter.concepts) chapter.concepts = [];
+  const idx = chapter.concepts.findIndex(c => c.id === concept.id);
+  if (idx !== -1) {
+    chapter.concepts[idx] = concept;
+  } else {
+    chapter.concepts.push(concept);
+  }
+  return updateCourse(course.id, { chapters: course.chapters });
+}
+
+// 删除概念（支持级联删除子孙概念），自动写回 storage
+function deleteConcept(courseId, chapterId, conceptId, cascade = false) {
+  const result = getChapter(courseId, chapterId);
+  if (!result) return false;
+  const { course, chapter } = result;
+  if (!chapter.concepts) return false;
+
+  const idsToRemove = new Set([conceptId]);
+  if (cascade) {
+    // 递归收集所有子孙概念 id
+    const collectChildren = (pid) => {
+      (chapter.concepts || []).filter(c => c.parentId === pid).forEach(c => {
+        idsToRemove.add(c.id);
+        collectChildren(c.id);
+      });
+    };
+    collectChildren(conceptId);
+  }
+
+  chapter.concepts = chapter.concepts.filter(c => !idsToRemove.has(c.id));
+  return updateCourse(course.id, { chapters: course.chapters });
+}
+
 // ===== 例题操作 =====
 function getExamples() {
   try {
@@ -72,7 +163,15 @@ function getExamples() {
 }
 
 function saveExamples(examples) {
-  localStorage.setItem(STORAGE_KEYS.examples, JSON.stringify(examples));
+  try {
+    localStorage.setItem(STORAGE_KEYS.examples, JSON.stringify(examples));
+  } catch (e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      showToast('存储空间不足！请清理例题中的大图片/PDF 或导出数据后清空', 'error');
+    } else {
+      showToast('数据保存失败', 'error');
+    }
+  }
 }
 
 function getExamplesByCourse(courseId) {

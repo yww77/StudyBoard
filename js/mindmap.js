@@ -33,7 +33,7 @@ function renderMindmapView() {
   const courseId = mindmapState.courseId || AppState.currentCourseId || (courses[0] && courses[0].id);
 
   if (!courseId || courses.length === 0) {
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">🧠</div><p>请先创建课程和概念</p></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="git-graph"></i></div><p>请先创建课程和概念</p></div>';
     return;
   }
 
@@ -41,10 +41,13 @@ function renderMindmapView() {
   const course = getCourseById(courseId);
   if (!course) return;
 
+  // 收集所有概念，按 showInMindmap 过滤（默认显示）
   const concepts = [];
   (course.chapters || []).forEach(ch => {
     (ch.concepts || []).forEach(c => {
-      concepts.push({ ...c, chapterTitle: ch.title });
+      if (c.showInMindmap !== false) {
+        concepts.push({ ...c, chapterTitle: ch.title });
+      }
     });
   });
 
@@ -82,20 +85,20 @@ function renderMindmapView() {
   mindmapState.nodeColors = colors;
 
   content.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <h2 style="font-size:18px;font-weight:700;color:var(--warm-700);">🧠 思维导图</h2>
+    <div class="flex-between" style="margin-bottom:12px;">
+      <div class="flex-center gap-md">
+        <h2 style="font-size:18px;font-weight:700;color:var(--ink);"><i data-lucide="git-graph"></i> 思维导图</h2>
         <select class="form-input" id="mindmapCourseSelect" style="width:200px;">
           ${courses.map(c => `<option value="${c.id}" ${c.id === courseId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:11px;color:var(--warm-400);margin-right:8px;">滚轮缩放 | 拖拽平移 | 拖拽节点 | 双击连线 | 右键菜单</span>
-        <button class="btn btn-sm" id="btnExportPdf" style="background:#dc2626;color:#fff;border:none;">📄 导出 PDF</button>
+      <div class="flex-center gap-sm">
+        <span class="text-muted" style="margin-right:8px;">滚轮缩放 | 拖拽平移 | 拖拽节点 | 双击连线 | 右键菜单</span>
+        <button class="btn btn-sm" id="btnExportPdf" style="background:#dc2626;color:#fff;border:none;"><i data-lucide="file-output"></i> 导出 PDF</button>
         <button class="btn btn-secondary btn-sm" id="btnResetView">重置视图</button>
       </div>
     </div>
-    <div id="mindmap-canvas" style="width:100%;height:calc(100vh - 160px);position:relative;overflow:hidden;background:var(--warm-bg);border-radius:8px;border:1px solid var(--warm-200);">
+    <div id="mindmap-canvas" style="width:100%;height:calc(100vh - 160px);position:relative;overflow:hidden;">
       <svg id="mindmapSvg"></svg>
     </div>`;
 
@@ -127,6 +130,8 @@ function renderMindmapView() {
   document.getElementById('btnExportPdf').addEventListener('click', () => {
     exportMindmapPDF(course);
   });
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // 导出思维导图为 PDF（通过浏览器打印）
@@ -398,13 +403,11 @@ function renderMindmap() {
     fo.setAttribute('class', 'mindmap-fo');
 
     let formulaHtml = '';
-    if (node.formula && typeof katex !== 'undefined') {
-      try {
-        const rendered = katex.renderToString(node.formula, { throwOnError: false, displayMode: false });
-        formulaHtml = `<div class="mm-formula" style="font-size:11px;color:#8a9b9e;word-wrap:break-word;overflow-wrap:break-word;">${rendered}</div>`;
-      } catch (e) {
-        formulaHtml = `<div class="mm-formula" style="font-size:10px;color:#a0988e;word-wrap:break-word;overflow-wrap:break-word;">${escapeHtml(node.formula)}</div>`;
-      }
+    if (node.formula) {
+      const rendered = safeRenderKatexToString(node.formula, false);
+      formulaHtml = rendered !== null
+        ? `<div class="mm-formula" style="font-size:11px;color:#8a9b9e;word-wrap:break-word;overflow-wrap:break-word;">${rendered}</div>`
+        : `<div class="mm-formula" style="font-size:10px;color:#a0988e;word-wrap:break-word;overflow-wrap:break-word;">${escapeHtml(node.formula)}</div>`;
     }
 
     fo.innerHTML = `
@@ -840,15 +843,24 @@ function bindMindmapEvents(container, svg, course) {
       if (action === '1') {
         showColorPicker(node, course);
       } else if (action === '2') {
-        if (confirm(`确定隐藏节点「${node.name}」？（概念本身不会被删除）`)) {
+        if (confirm(`确定隐藏节点「${node.name}」？\n\n该概念将设为「不在思维导图中显示」，可在概念编辑中重新开启。`)) {
           pushUndoState(course);
+          // 设置概念的 showInMindmap 为 false
+          (course.chapters || []).forEach(ch => {
+            (ch.concepts || []).forEach(c => {
+              if (c.id === nodeId) c.showInMindmap = false;
+            });
+          });
+          updateCourse(course.id, { chapters: course.chapters });
+          // 清理该节点的连线和位置
           mindmapState.connections = mindmapState.connections.filter(
-            c => c.from !== nodeId && c.to !== nodeId
+            con => con.from !== nodeId && con.to !== nodeId
           );
           delete mindmapState.nodePositions[nodeId];
           delete mindmapState.nodeColors[nodeId];
           saveMindmapData(course);
           renderMindmapView();
+          showToast(`「${node.name}」已从思维导图隐藏`, 'success');
         }
       }
     } else if (e.target.dataset && e.target.dataset.from) {
@@ -937,12 +949,12 @@ function showColorPicker(node, course) {
 
   const bodyHtml = `
     <div style="text-align:center;">
-      <p style="margin-bottom:12px;font-size:13px;color:var(--warm-600);">为「${escapeHtml(node.name)}」选择颜色</p>
+      <p style="margin-bottom:12px;font-size:13px;color:var(--ink-light);">为「${escapeHtml(node.name)}」选择颜色</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
         ${NODE_COLORS.map(c => `
           <div class="mindmap-color-option" data-color="${c}"
                style="width:36px;height:36px;border-radius:50%;background:${c};cursor:pointer;
-                      border:3px solid ${c === currentColor ? 'var(--warm-700)' : 'transparent'};
+                      border:3px solid ${c === currentColor ? 'var(--ink)' : 'transparent'};
                       transition:all 0.15s ease;"
                onmouseover="this.style.transform='scale(1.2)'"
                onmouseout="this.style.transform='scale(1)'">
@@ -951,35 +963,19 @@ function showColorPicker(node, course) {
       </div>
     </div>`;
 
-  showModal('更改节点颜色', bodyHtml, (overlay) => {
-    const selected = overlay.querySelector('.mindmap-color-option[style*="var(--warm-700)"]');
-    // 由于 inline style 不好检测，改用 data 属性查找
-    const allOpts = overlay.querySelectorAll('.mindmap-color-option');
-    let newColor = currentColor;
-    // 实际上在 setTimeout 里绑定了事件，这里直接取最后选中的
-    overlay.remove();
-    if (newColor !== currentColor) {
-      pushUndoState(course);
-      mindmapState.nodeColors[nodeId] = newColor;
-      saveMindmapData(course);
-      renderMindmap();
-      showToast('颜色已更新', 'success');
-    }
-  });
-
-  // 绑定颜色选择事件
-  setTimeout(() => {
-    document.querySelectorAll('.mindmap-color-option').forEach(opt => {
+  showModal('更改节点颜色', bodyHtml, () => {
+    // 颜色在点击时即时生效，确认按钮仅关闭弹窗
+  }, (overlay) => {
+    overlay.querySelectorAll('.mindmap-color-option').forEach(opt => {
       opt.addEventListener('click', function() {
         const c = this.dataset.color;
         pushUndoState(course);
         mindmapState.nodeColors[nodeId] = c;
         saveMindmapData(course);
-        // 关闭弹窗并重绘
         closeAllModals();
         renderMindmap();
         showToast('颜色已更新', 'success');
       });
     });
-  }, 50);
+  });
 }
