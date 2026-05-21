@@ -68,6 +68,7 @@ function renderCourseView() {
           <div class="card-header">
             <span class="card-title">${escapeHtml(c.name)}</span>
             <div style="display:flex;gap:4px;">
+              <button class="btn-icon btn-edit-course-info" data-course-id="${c.id}" title="编辑课程信息"><i data-lucide="info"></i></button>
               <button class="btn-icon btn-rename-course" data-course-id="${c.id}" title="重命名"><i data-lucide="pencil"></i></button>
               <button class="btn-icon btn-delete-course" data-course-id="${c.id}" title="删除"><i data-lucide="trash-2"></i></button>
             </div>
@@ -75,6 +76,7 @@ function renderCourseView() {
           <div class="course-meta">
             ${(c.chapters || []).length} 个章节 · 创建于 ${c.createdAt || '未知'}
           </div>
+          ${renderCourseInfoBar(c)}
         </div>
       `).join('')}
     </div>`;
@@ -119,6 +121,26 @@ function renderCourseView() {
       const courseId = btn.dataset.courseId;
       const course = getCourseById(courseId);
       showRenameCourseModal(course);
+    });
+  });
+
+  // 编辑课程信息按钮
+  document.querySelectorAll('.btn-edit-course-info').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const courseId = btn.dataset.courseId;
+      const course = getCourseById(courseId);
+      if (course) showEditCourseInfoModal(course);
+    });
+  });
+
+  // 课程信息空状态占位点击
+  document.querySelectorAll('.course-info-empty').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const courseId = el.dataset.courseId;
+      const course = getCourseById(courseId);
+      if (course) showEditCourseInfoModal(course);
     });
   });
 
@@ -198,6 +220,203 @@ function showRenameCourseModal(course) {
     renderSidebarCourses();
     renderCourseView();
     showToast('课程已重命名', 'success');
+  });
+}
+
+// ===== 课程信息栏渲染（纯函数） =====
+function renderCourseInfoBar(course) {
+  const info = course.courseInfo || {};
+  const bonustests = Array.isArray(info.bonustests) ? info.bonustests : [];
+  const hasAny = info.credits || info.examDate || info.examTime ||
+                 info.examLocation || info.examHilfsmittel || bonustests.length > 0;
+
+  if (!hasAny) {
+    return `<div class="course-info-empty" data-course-id="${course.id}" data-action="edit-info">
+      <i data-lucide="info"></i> 点击添加课程信息...
+    </div>`;
+  }
+
+  let html = '<div class="course-info-block">';
+
+  if (info.credits) {
+    html += `<div class="course-info-row">
+      <i data-lucide="graduation-cap"></i> ${escapeHtml(String(info.credits))} 学分
+    </div>`;
+  }
+
+  if (info.examDate) {
+    const days = calcDaysUntil(info.examDate);
+    let cls = 'normal', label = '';
+    if (days !== null) {
+      if (days < 0) { cls = 'urgent'; label = '已结束'; }
+      else if (days <= 7) { cls = 'urgent'; label = `剩 ${days} 天`; }
+      else if (days <= 30) { cls = 'warning'; label = `剩 ${days} 天`; }
+      else { cls = 'normal'; label = `剩 ${days} 天`; }
+    }
+    html += `<div class="course-info-row">
+      <i data-lucide="calendar-days"></i> ${escapeHtml(info.examDate)}
+      ${info.examTime ? ' ' + escapeHtml(info.examTime) : ''}
+      ${label ? `<span class="course-countdown ${cls}"><i data-lucide="clock"></i> ${label}</span>` : ''}
+    </div>`;
+  }
+
+  if (info.examLocation) {
+    html += `<div class="course-info-row">
+      <i data-lucide="map-pin"></i> ${escapeHtml(info.examLocation)}
+    </div>`;
+  }
+
+  if (info.examHilfsmittel) {
+    html += `<div class="course-info-row">
+      <i data-lucide="paperclip"></i> 考试: ${escapeHtml(info.examHilfsmittel)}
+    </div>`;
+  }
+
+  if (bonustests.length > 0) {
+    bonustests.forEach((bt, i) => {
+      let parts = [];
+      if (bt.points) parts.push(`${escapeHtml(String(bt.points))} 分`);
+      if (bt.date) parts.push(escapeHtml(bt.date));
+      html += `<div class="course-info-row">
+        <span class="course-bonus-badge"><i data-lucide="gift"></i> Bonustest${bonustests.length > 1 ? ' ' + (i + 1) : ''}${parts.length ? ': ' + parts.join(' · ') : ''}</span>
+        ${bt.hilfsmittel ? '<span style="margin-left:4px;font-size:12px;color:var(--ink-muted);">' + escapeHtml(bt.hilfsmittel) + '</span>' : ''}
+      </div>`;
+    });
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// ===== 编辑课程信息弹窗 =====
+function showEditCourseInfoModal(course) {
+  const info = course.courseInfo || {};
+
+  const bodyHtml = `
+    <div class="form-group">
+      <label>学分 (ECTS)</label>
+      <input class="form-input" id="infoCredits" value="${escapeHtml(info.credits || '')}" placeholder="例如：6">
+    </div>
+    <div class="form-group">
+      <label>考试日期</label>
+      <input class="form-input" type="date" id="infoExamDate" value="${escapeHtml(info.examDate || '')}">
+    </div>
+    <div class="form-group">
+      <label>考试时间</label>
+      <input class="form-input" id="infoExamTime" value="${escapeHtml(info.examTime || '')}" placeholder="例如：14:00-16:00">
+    </div>
+    <div class="form-group">
+      <label>考试地点</label>
+      <input class="form-input" id="infoExamLocation" value="${escapeHtml(info.examLocation || '')}" placeholder="例如：Hörsaal H01">
+    </div>
+    <div class="form-group">
+      <label>考试 Hilfsmittel（允许的辅助工具）</label>
+      <textarea class="form-input form-textarea" id="infoExamHilfsmittel" rows="2" placeholder="例如：Taschenrechner (nicht programmierbar), Formelsammlung">${escapeHtml(info.examHilfsmittel || '')}</textarea>
+    </div>
+    <div class="form-group" style="border-top:2px solid var(--paper-border);padding-top:14px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Bonustests</span>
+        <button type="button" class="btn btn-sm btn-secondary" id="btnAddBonustest" style="font-size:11px;padding:4px 10px;"><i data-lucide="plus"></i> 添加</button>
+      </label>
+      <div id="bonustestList">
+        ${(info.bonustests || []).map((bt, i) => `
+          <div class="bonustest-entry" data-index="${i}" style="padding:10px 0;border-bottom:1px solid var(--paper-border);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:12px;font-weight:700;color:var(--ink-light);">Bonustest ${i + 1}</span>
+              <button type="button" class="btn-icon btn-remove-bonustest" data-index="${i}" title="删除" style="width:26px;height:26px;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:6px;">
+              <input class="form-input" type="date" id="btDate${i}" value="${escapeHtml(bt.date || '')}" style="flex:1;">
+              <input class="form-input" id="btPoints${i}" value="${escapeHtml(bt.points || '')}" placeholder="分数 如0.3" style="flex:1;">
+            </div>
+            <textarea class="form-input form-textarea" id="btHilfsmittel${i}" rows="2" placeholder="Hilfsmittel（可选）" style="width:100%;">${escapeHtml(bt.hilfsmittel || '')}</textarea>
+          </div>
+        `).join('')}
+        ${(info.bonustests || []).length === 0 ? '<div class="text-muted" id="bonustestEmpty" style="text-align:center;padding:12px;">暂无 Bonustest，点击「添加」新增</div>' : ''}
+      </div>
+    </div>`;
+
+  showModal('编辑课程信息', bodyHtml, (overlay) => {
+    const newInfo = {
+      credits: overlay.querySelector('#infoCredits').value.trim(),
+      examDate: overlay.querySelector('#infoExamDate').value,
+      examTime: overlay.querySelector('#infoExamTime').value.trim(),
+      examLocation: overlay.querySelector('#infoExamLocation').value.trim(),
+      examHilfsmittel: overlay.querySelector('#infoExamHilfsmittel').value.trim(),
+      bonustests: []
+    };
+
+    // 收集所有 Bonustest 条目
+    const entries = overlay.querySelectorAll('.bonustest-entry');
+    entries.forEach(entry => {
+      const idx = entry.dataset.index;
+      newInfo.bonustests.push({
+        date: overlay.querySelector(`#btDate${idx}`).value,
+        points: overlay.querySelector(`#btPoints${idx}`).value.trim(),
+        hilfsmittel: overlay.querySelector(`#btHilfsmittel${idx}`).value.trim()
+      });
+    });
+
+    updateCourse(course.id, { courseInfo: newInfo });
+    overlay.remove();
+    renderCourseView();
+    showToast('课程信息已更新', 'success');
+  }, (overlay) => {
+    let nextIdx = (info.bonustests || []).length;
+    const list = overlay.querySelector('#bonustestList');
+    const emptyMsg = overlay.querySelector('#bonustestEmpty');
+
+    function refreshIcons() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
+
+    function addEntry() {
+      if (emptyMsg) emptyMsg.remove();
+      const idx = nextIdx++;
+      const entry = document.createElement('div');
+      entry.className = 'bonustest-entry';
+      entry.dataset.index = idx;
+      entry.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:12px;font-weight:700;color:var(--ink-light);">Bonustest ${list.children.length + 1}</span>
+          <button type="button" class="btn-icon btn-remove-bonustest" data-index="${idx}" title="删除" style="width:26px;height:26px;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:6px;">
+          <input class="form-input" type="date" id="btDate${idx}" style="flex:1;">
+          <input class="form-input" id="btPoints${idx}" placeholder="分数 如0.3" style="flex:1;">
+        </div>
+        <textarea class="form-input form-textarea" id="btHilfsmittel${idx}" rows="2" placeholder="Hilfsmittel（可选）" style="width:100%;"></textarea>
+      `;
+      list.appendChild(entry);
+      bindRemove(entry.querySelector('.btn-remove-bonustest'));
+      renumber();
+      refreshIcons();
+    }
+
+    function bindRemove(btn) {
+      btn.addEventListener('click', () => {
+        btn.closest('.bonustest-entry').remove();
+        renumber();
+        if (list.querySelectorAll('.bonustest-entry').length === 0 && !overlay.querySelector('#bonustestEmpty')) {
+          const msg = document.createElement('div');
+          msg.className = 'text-muted';
+          msg.id = 'bonustestEmpty';
+          msg.style.cssText = 'text-align:center;padding:12px;';
+          msg.textContent = '暂无 Bonustest，点击「添加」新增';
+          list.appendChild(msg);
+        }
+      });
+    }
+
+    function renumber() {
+      const entries = list.querySelectorAll('.bonustest-entry');
+      entries.forEach((entry, i) => {
+        const label = entry.querySelector('span');
+        if (label) label.textContent = `Bonustest ${i + 1}`;
+      });
+    }
+
+    overlay.querySelector('#btnAddBonustest').addEventListener('click', addEntry);
+    overlay.querySelectorAll('.btn-remove-bonustest').forEach(bindRemove);
+    refreshIcons();
   });
 }
 

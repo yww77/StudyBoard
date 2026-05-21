@@ -19,9 +19,40 @@ function initStorage() {
 }
 
 // 迁移旧数据：为缺少 parentId / showInMindmap 的概念补上默认值
-function migrateConceptsData(courses) {
+function migrateCourseData(courses) {
   let migrated = false;
+  const defaultCourseInfo = {
+    credits: '',
+    examDate: '',
+    examTime: '',
+    examLocation: '',
+    examHilfsmittel: '',
+    bonustests: []
+  };
   (courses || []).forEach(course => {
+    // 迁移 courseInfo
+    if (!course.courseInfo) {
+      course.courseInfo = { ...defaultCourseInfo };
+      migrated = true;
+    } else if (!Array.isArray(course.courseInfo.bonustests)) {
+      // 旧格式：hasBonus/bonusPoints/bonusDate/bonusHilfsmittel → 新格式 bonustests[]
+      const ci = course.courseInfo;
+      if (ci.hasBonus) {
+        ci.bonustests = [{ date: ci.bonusDate || '', points: ci.bonusPoints || '', hilfsmittel: ci.bonusHilfsmittel || '' }];
+      } else {
+        ci.bonustests = [];
+      }
+      delete ci.hasBonus;
+      delete ci.bonusPoints;
+      delete ci.bonusDate;
+      delete ci.bonusHilfsmittel;
+      migrated = true;
+    }
+    // 迁移 mindmapNodeColors
+    if (!course.mindmapNodeColors) {
+      course.mindmapNodeColors = {};
+      migrated = true;
+    }
     (course.chapters || []).forEach(ch => {
       (ch.concepts || []).forEach(concept => {
         if (concept.parentId === undefined) {
@@ -42,7 +73,7 @@ function migrateConceptsData(courses) {
 function getCourses() {
   try {
     const courses = JSON.parse(localStorage.getItem(STORAGE_KEYS.courses)) || [];
-    if (migrateConceptsData(courses)) {
+    if (migrateCourseData(courses)) {
       // 静默写回迁移后的数据
       localStorage.setItem(STORAGE_KEYS.courses, JSON.stringify(courses));
     }
@@ -71,6 +102,13 @@ function getCourseById(courseId) {
 
 function addCourse(course) {
   const courses = getCourses();
+  if (!course.courseInfo) {
+    course.courseInfo = {
+      credits: '', examDate: '', examTime: '', examLocation: '',
+      examHilfsmittel: '', bonustests: []
+    };
+  }
+  if (!course.mindmapNodeColors) course.mindmapNodeColors = {};
   courses.push(course);
   saveCourses(courses);
 }

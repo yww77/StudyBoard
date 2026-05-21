@@ -15,6 +15,17 @@ function todayStr() {
     String(d.getDate()).padStart(2, '0');
 }
 
+// 计算距目标日期的剩余天数（纯函数）
+// dateStr: YYYY-MM-DD，返回整数天数（负数=已过期），无效输入返回 null
+function calcDaysUntil(dateStr) {
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  const target = new Date(dateStr + 'T00:00:00');
+  if (isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 // 防抖函数
 function debounce(fn, delay) {
   let timer;
